@@ -2,12 +2,23 @@ import express from 'express';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { existsSync, readdirSync } from 'fs';
+import cors from 'cors';
+import { initializeDatabase, closePool } from './src/lib/database.js';
+import apiRoutes from './src/api/routes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
 const port = process.env.PORT || 3000;
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// API routes
+app.use('/api', apiRoutes);
 
 // Check if dist directory exists
 const distPath = join(__dirname, 'dist');
@@ -45,13 +56,51 @@ if (!existsSync(distPath)) {
 // Serve static files from the dist directory
 app.use(express.static(finalDistPath));
 
-// Handle SPA routing - send all requests to index.html
-app.use((req, res) => {
+// Handle SPA routing - send all non-API requests to index.html
+app.use((req, res, next) => {
+  // Skip API routes
+  if (req.path.startsWith('/api')) {
+    return next();
+  }
   res.sendFile(join(finalDistPath, 'index.html'));
 });
 
-app.listen(port, '0.0.0.0', () => {
-  console.log(`🚀 ReachMAI server running on port ${port}`);
-  console.log(`📁 Serving from: ${finalDistPath}`);
-  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+// Initialize database and start server
+async function startServer() {
+  try {
+    // Initialize database connection
+    if (process.env.DATABASE_URL) {
+      console.log('🔗 Initializing database connection...');
+      await initializeDatabase();
+      console.log('✅ Database initialized successfully');
+    } else {
+      console.log('⚠️  No DATABASE_URL found - running without database');
+    }
+
+    // Start the server
+    app.listen(port, '0.0.0.0', () => {
+      console.log(`🚀 ReachMAI server running on port ${port}`);
+      console.log(`📁 Serving from: ${finalDistPath}`);
+      console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`🔌 API endpoints available at /api/*`);
+    });
+  } catch (error) {
+    console.error('❌ Failed to start server:', error);
+    process.exit(1);
+  }
+}
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  console.log('🛑 SIGTERM received, shutting down gracefully...');
+  await closePool();
+  process.exit(0);
 });
+
+process.on('SIGINT', async () => {
+  console.log('🛑 SIGINT received, shutting down gracefully...');
+  await closePool();
+  process.exit(0);
+});
+
+startServer();
