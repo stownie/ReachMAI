@@ -140,11 +140,84 @@ process.on('SIGTERM', async () => {
   process.exit(0);
 });
 
+/**
+ * Helper function to create a record in a table
+ */
+export async function create(table, data) {
+  const keys = Object.keys(data);
+  const values = Object.values(data);
+  const placeholders = keys.map((_, index) => `$${index + 1}`).join(', ');
+  const columns = keys.join(', ');
+  
+  const text = `INSERT INTO ${table} (${columns}) VALUES (${placeholders}) RETURNING *`;
+  const result = await query(text, values);
+  return result.rows[0];
+}
+
+/**
+ * Helper function to find a record by ID
+ */
+export async function findById(table, id) {
+  const text = `SELECT * FROM ${table} WHERE id = $1`;
+  const result = await query(text, [id]);
+  return result.rows[0];
+}
+
+/**
+ * Helper function to find records by condition
+ */
+export async function findWhere(table, conditions) {
+  const keys = Object.keys(conditions);
+  const values = Object.values(conditions);
+  const whereClause = keys.map((key, index) => `${key} = $${index + 1}`).join(' AND ');
+  
+  const text = `SELECT * FROM ${table} WHERE ${whereClause}`;
+  const result = await query(text, values);
+  return result.rows;
+}
+
+/**
+ * Helper function to update a record
+ */
+export async function update(table, id, data) {
+  const keys = Object.keys(data);
+  const values = Object.values(data);
+  const setClause = keys.map((key, index) => `${key} = $${index + 2}`).join(', ');
+  
+  const text = `UPDATE ${table} SET ${setClause}, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *`;
+  const result = await query(text, [id, ...values]);
+  return result.rows[0];
+}
+
+/**
+ * Helper function to delete a record
+ */
+export async function deleteById(table, id) {
+  const text = `DELETE FROM ${table} WHERE id = $1 RETURNING *`;
+  const result = await query(text, [id]);
+  return result.rows[0];
+}
+
+// Create db object for backward compatibility
+export const db = {
+  create,
+  findById,
+  findWhere,
+  update,
+  deleteById
+};
+
 export default {
   initializeDatabase,
   getPool,
   query,
   transaction,
   healthCheck,
-  closePool
+  closePool,
+  create,
+  findById,
+  findWhere,
+  update,
+  deleteById,
+  db
 };
