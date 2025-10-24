@@ -16,7 +16,8 @@ INSERT INTO programs (id, organization_id, name, description, category, age_grou
 INSERT INTO auth_accounts (id, email, phone, password_hash, email_verified, phone_verified) VALUES
     ('550e8400-e29b-41d4-a716-446655440101', 'johnson.family@email.com', '+1-555-456-7890', '$2b$10$rOKlWlpT7qAJzXxp5mHlE.JvMWqcDf/aNLOeBkRy9q8x.WZtCKkMa', true, true),
     ('550e8400-e29b-41d4-a716-446655440102', 'teacher.smith@email.com', '+1-555-234-5678', '$2b$10$rOKlWlpT7qAJzXxp5mHlE.JvMWqcDf/aNLOeBkRy9q8x.WZtCKkMa', true, false),
-    ('550e8400-e29b-41d4-a716-446655440103', 'adult.learner@email.com', '+1-555-345-6789', '$2b$10$rOKlWlpT7qAJzXxp5mHlE.JvMWqcDf/aNLOeBkRy9q8x.WZtCKkMa', true, true);
+    ('550e8400-e29b-41d4-a716-446655440103', 'adult.learner@email.com', '+1-555-345-6789', '$2b$10$rOKlWlpT7qAJzXxp5mHlE.JvMWqcDf/aNLOeBkRy9q8x.WZtCKkMa', true, true),
+    ('550e8400-e29b-41d4-a716-446655440104', 'admin@reachmai.com', '+1-555-000-0000', '$2b$10$rOKlWlpT7qAJzXxp5mHlE.JvMWqcDf/aNLOeBkRy9q8x.WZtCKkMa', true, true);
 
 -- Insert sample user profiles
 INSERT INTO user_profiles (id, account_id, profile_type, first_name, last_name, preferred_name, email, phone, date_of_birth, school, school_catalog) VALUES
@@ -27,7 +28,9 @@ INSERT INTO user_profiles (id, account_id, profile_type, first_name, last_name, 
     -- Teacher profile
     ('550e8400-e29b-41d4-a716-446655440203', '550e8400-e29b-41d4-a716-446655440102', 'teacher', 'Michael', 'Smith', 'Mr. Smith', 'teacher.smith@email.com', '+1-555-234-5678', '1980-11-10', NULL, NULL),
     -- Adult learner profile
-    ('550e8400-e29b-41d4-a716-446655440204', '550e8400-e29b-41d4-a716-446655440103', 'adult', 'Jennifer', 'Davis', 'Jen', 'adult.learner@email.com', '+1-555-345-6789', '1975-09-03', NULL, NULL);
+    ('550e8400-e29b-41d4-a716-446655440204', '550e8400-e29b-41d4-a716-446655440103', 'adult', 'Jennifer', 'Davis', 'Jen', 'adult.learner@email.com', '+1-555-345-6789', '1975-09-03', NULL, NULL),
+    -- Admin profile
+    ('550e8400-e29b-41d4-a716-446655440205', '550e8400-e29b-41d4-a716-446655440104', 'admin', 'Alex', 'Rodriguez', 'Admin Alex', 'admin@reachmai.com', '+1-555-000-0000', '1985-05-15', NULL, NULL);
 
 -- Insert student-parent relationships
 INSERT INTO student_parent_relationships (student_id, parent_id, relationship_type, is_primary) VALUES

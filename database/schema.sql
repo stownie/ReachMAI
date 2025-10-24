@@ -20,7 +20,7 @@ CREATE TABLE auth_accounts (
 CREATE TABLE user_profiles (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     account_id UUID REFERENCES auth_accounts(id) ON DELETE CASCADE,
-    profile_type VARCHAR(20) NOT NULL CHECK (profile_type IN ('student', 'parent', 'teacher', 'adult')),
+    profile_type VARCHAR(20) NOT NULL CHECK (profile_type IN ('student', 'parent', 'teacher', 'adult', 'admin')),
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
     preferred_name VARCHAR(100),

@@ -11,10 +11,11 @@ import PayrollPage from './pages/PayrollPage'
 import NotificationsPage from './pages/NotificationsPage'
 import MessagesPage from './pages/MessagesPage'
 import BulkCommunicationsPage from './pages/BulkCommunicationsPage'
+import AdminDashboard from './pages/AdminDashboard'
 import { MobileDashboard } from './pages/MobileDashboard'
 import type { AuthAccount, UserProfile } from './types';
 import { mockScenarios, getMockAccountByScenario } from './lib/mockData';
-import { Calendar, Users, BookOpen, Clock, DollarSign, Bell } from 'lucide-react';
+import { Calendar, Users, BookOpen, Clock, DollarSign, Bell, Building2, BarChart3, Settings } from 'lucide-react';
 
 function AppContent() {
   const { account, currentProfile, isAuthenticated, logout, switchProfile, isLoading } = useAuth();
@@ -160,6 +161,52 @@ function AppContent() {
           },
         ];
       
+      case 'admin':
+        return [
+          {
+            title: 'Users',
+            description: 'Manage all platform users',
+            icon: Users,
+            color: 'bg-blue-600',
+            href: '/users'
+          },
+          {
+            title: 'Organizations',
+            description: 'Manage schools and organizations',
+            icon: Building2,
+            color: 'bg-green-600',
+            href: '/organizations'
+          },
+          {
+            title: 'Analytics',
+            description: 'Platform insights and reports',
+            icon: BarChart3,
+            color: 'bg-purple-600',
+            href: '/analytics'
+          },
+          {
+            title: 'Notifications',
+            description: 'System-wide communications',
+            icon: Bell,
+            color: 'bg-orange-600',
+            href: '/notifications'
+          },
+          {
+            title: 'Settings',
+            description: 'Platform configuration',
+            icon: Settings,
+            color: 'bg-gray-600',
+            href: '/admin-settings'
+          },
+          {
+            title: 'Billing',
+            description: 'Revenue and financial overview',
+            icon: DollarSign,
+            color: 'bg-primary-600',
+            href: '/admin-billing'
+          },
+        ];
+      
       default:
         return baseCards;
     }
@@ -189,11 +236,15 @@ function AppContent() {
       default:
         return (
           <>
-            <Hero currentProfile={currentProfile} onShowAuth={handleShowAuth} />
+            <Hero currentProfile={currentProfile || undefined} onShowAuth={handleShowAuth} />
             <main className="container mx-auto px-4 py-12">
               {currentProfile ? (
-                // Authenticated Dashboard
-                <div>
+                // Check if admin should use special dashboard
+                currentProfile.type === 'admin' ? (
+                  <AdminDashboard currentProfile={currentProfile as any} />
+                ) : (
+                  // Regular Authenticated Dashboard
+                  <div>
                   <div className="mb-8">
                     <h2 className="text-2xl font-bold text-gray-900 mb-2">
                       Your Dashboard
@@ -259,6 +310,7 @@ function AppContent() {
                     </div>
                   </div>
                 </div>
+                )
               ) : (
                 // Public Landing Page
                 <div>

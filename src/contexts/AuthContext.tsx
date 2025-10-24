@@ -20,7 +20,7 @@ interface RegisterData {
   phone?: string;
   password: string;
   profile: {
-    type: 'student' | 'parent' | 'teacher' | 'adult';
+    type: 'student' | 'parent' | 'teacher' | 'adult' | 'admin';
     firstName: string;
     lastName: string;
   };

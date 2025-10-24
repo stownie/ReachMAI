@@ -64,6 +64,16 @@ const Header: React.FC<HeaderProps> = ({
           { label: 'Events', href: 'events' },
         ];
       
+      case 'admin':
+        return [
+          ...baseItems,
+          { label: 'Users', href: 'users' },
+          { label: 'Organizations', href: 'organizations' },
+          { label: 'Analytics', href: 'analytics' },
+          { label: 'Bulk Comms', href: 'bulk-communications' },
+          { label: 'Settings', href: 'admin-settings' },
+        ];
+      
       default:
         return baseItems;
     }

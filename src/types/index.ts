@@ -12,7 +12,7 @@ export interface AuthAccount {
 
 export interface UserProfile {
   id: string;
-  type: 'adult' | 'student' | 'parent' | 'teacher';
+  type: 'adult' | 'student' | 'parent' | 'teacher' | 'admin';
   firstName: string;
   lastName: string;
   preferredName?: string;
@@ -43,6 +43,20 @@ export interface ParentProfile extends UserProfile {
 export interface TeacherProfile extends UserProfile {
   type: 'teacher';
   clearances: TeacherClearance[];
+}
+
+export interface AdminProfile extends UserProfile {
+  type: 'admin';
+  permissions: AdminPermission[];
+  organizationIds: string[];
+}
+
+export interface AdminPermission {
+  id: string;
+  name: string;
+  description: string;
+  resource: string;
+  actions: string[];
 }
 
 // Organizations

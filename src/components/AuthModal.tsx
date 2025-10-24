@@ -18,7 +18,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
     confirmPassword: '',
     firstName: '',
     lastName: '',
-    profileType: 'student' as 'student' | 'parent' | 'teacher' | 'adult'
+    profileType: 'student' as 'student' | 'parent' | 'teacher' | 'adult' | 'admin'
   });
 
   const { login, register, error, isLoading, clearError } = useAuth();
@@ -125,6 +125,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                     <option value="parent">Parent</option>
                     <option value="teacher">Teacher</option>
                     <option value="adult">Adult Learner</option>
+                    <option value="admin">Administrator</option>
                   </select>
                 </div>
 
@@ -261,12 +262,21 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
 
           {/* Demo Account Info */}
           {mode === 'login' && (
-            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-              <p className="text-xs text-blue-600 font-medium mb-1">Demo Account:</p>
-              <p className="text-xs text-blue-600">
-                Email: johnson.family@email.com<br />
-                Password: password123
-              </p>
+            <div className="mt-4 space-y-2">
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+                <p className="text-xs text-blue-600 font-medium mb-1">Family Account:</p>
+                <p className="text-xs text-blue-600">
+                  Email: johnson.family@email.com<br />
+                  Password: password123
+                </p>
+              </div>
+              <div className="p-3 bg-purple-50 border border-purple-200 rounded-md">
+                <p className="text-xs text-purple-600 font-medium mb-1">Admin Account:</p>
+                <p className="text-xs text-purple-600">
+                  Email: admin@reachmai.com<br />
+                  Password: password123
+                </p>
+              </div>
             </div>
           )}
         </div>
