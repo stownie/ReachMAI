@@ -8,7 +8,11 @@ When setting up on Render, use these configurations:
 - **Build Command**: `npm ci && npm run build`
 - **Start Command**: `npm start`
 - **Node Version**: `18` (or latest LTS)
-- **Port**: `3000` (or auto-detect from environment)
+- **Port**: Auto-detect from environment (PORT variable)
+
+### Alternative Build Commands (if above fails):
+- **Option 1**: `bash build.sh` (uses included build script)
+- **Option 2**: `npm install && npm run build` (if npm ci fails)
 
 ### Alternative: Static Site (Frontend Only - Current Setup):
 - **Build Command**: `npm ci && npm run build`
