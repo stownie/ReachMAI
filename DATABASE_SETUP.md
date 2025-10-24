@@ -13,8 +13,8 @@ This guide explains how to set up PostgreSQL database for ReachMAI on Render.
    - **Database**: `reachmai`
    - **User**: `reachmai_user`
    - **Region**: Choose same as your web service
-   - **PostgreSQL Version**: 15 (latest)
-   - **Plan**: Free (for development) or Starter $7/month (recommended)
+   - **PostgreSQL Version**: **15** (recommended for stability and compatibility)
+   - **Plan**: Free (for development) or Starter $7/month (recommended for production)
 
 4. Click "Create Database"
 
