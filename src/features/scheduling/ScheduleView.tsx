@@ -113,7 +113,7 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({
     return events;
   }, [filteredMeetings, sections, currentDate, currentView]);
 
-  const eventStyleGetter = (event: CalendarEvent) => {
+  const eventStyleGetter = (event: any) => {
     const { type } = event.resource;
     
     const styles = {
@@ -135,7 +135,7 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({
     };
 
     return {
-      style: styles[type] || styles.class,
+      style: styles[type as keyof typeof styles] || styles.class,
     };
   };
 
@@ -147,7 +147,7 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({
     setCurrentView(view);
   };
 
-  const handleSelectEvent = (event: CalendarEvent) => {
+  const handleSelectEvent = (event: any) => {
     onMeetingClick?.(event.resource.meeting, {
       start: event.start,
       end: event.end,
@@ -250,13 +250,13 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({
           toolbar={false} // We're using custom toolbar
           formats={{
             timeGutterFormat: 'h:mm A',
-            eventTimeRangeFormat: ({ start, end }) => 
+            eventTimeRangeFormat: ({ start, end }: { start: Date; end: Date }) => 
               `${format(start, 'h:mm a')} - ${format(end, 'h:mm a')}`,
             agendaTimeFormat: 'h:mm A',
             agendaDateFormat: 'MMM dd',
           }}
           components={{
-            event: ({ event }) => (
+            event: ({ event }: { event: any }) => (
               <div className="text-xs">
                 <div className="font-medium">{event.title}</div>
                 {event.resource.section && (
