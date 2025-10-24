@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "prebuild": "echo 'Preparing build...'",
+    "prebuild": "echo 'Preparing build...' && pwd && ls -la || dir",
     "build": "tsc -b && vite build",
-    "postbuild": "echo 'Build completed successfully!'",
+    "postbuild": "echo 'Build completed!' && echo 'Checking dist directory...' && ls -la dist/ || dir dist\\",
     "lint": "eslint .",
     "preview": "vite preview",
     "build:render": "npm ci && npm run build",
