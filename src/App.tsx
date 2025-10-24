@@ -59,28 +59,26 @@ function App() {
     const baseCards = [
       {
         title: 'Schedule',
-        description: 'View your upcoming classes and events',
+        description: 'View and manage your calendar',
         icon: Calendar,
-        color: 'bg-blue-500',
+        color: 'bg-primary-500',
         href: '/schedule'
       },
       {
-        title: 'Notifications',
-        description: 'View messages and important updates',
-        icon: Bell,
-        color: 'bg-purple-500',
-        href: '/notifications'
+        title: 'Assignments',
+        description: 'Track assignments and progress',
+        icon: BookOpen,
+        color: 'bg-accent-500',
+        href: '/assignments'
       },
       {
-        title: 'Messages',
-        description: 'Chat with teachers and administrators',
-        icon: Users,
-        color: 'bg-pink-500',
-        href: '/messages'
+        title: 'Notifications',
+        description: 'Stay updated with important messages',
+        icon: Bell,
+        color: 'bg-secondary-500',
+        href: '/notifications'
       },
-    ];
-
-    switch (currentProfile.type) {
+    ];    switch (currentProfile.type) {
       case 'student':
         return [
           ...baseCards,
@@ -107,14 +105,14 @@ function App() {
             title: 'Students',
             description: 'Manage your children\'s profiles',
             icon: Users,
-            color: 'bg-green-500',
+            color: 'bg-accent-500',
             href: '/students'
           },
           {
             title: 'Billing',
             description: 'View invoices and payments',
             icon: DollarSign,
-            color: 'bg-yellow-500',
+            color: 'bg-neutral-500',
             href: '/billing'
           },
         ];
@@ -126,21 +124,21 @@ function App() {
             title: 'Classes',
             description: 'Manage your teaching schedule',
             icon: Users,
-            color: 'bg-purple-500',
+            color: 'bg-secondary-500',
             href: '/classes'
           },
           {
             title: 'Attendance',
             description: 'Track student attendance',
             icon: Clock,
-            color: 'bg-orange-500',
+            color: 'bg-primary-500',
             href: '/attendance'
           },
           {
             title: 'Payroll',
             description: 'View your payroll and earnings',
             icon: DollarSign,
-            color: 'bg-green-500',
+            color: 'bg-accent-500',
             href: '/payroll'
           },
         ];
@@ -152,14 +150,14 @@ function App() {
             title: 'Programs',
             description: 'Explore available programs',
             icon: BookOpen,
-            color: 'bg-orange-500',
+            color: 'bg-primary-500',
             href: '/programs'
           },
           {
             title: 'Events',
             description: 'Discover upcoming events',
             icon: Bell,
-            color: 'bg-pink-500',
+            color: 'bg-secondary-500',
             href: '/events'
           },
         ];
@@ -215,18 +213,18 @@ function App() {
                         <div 
                           key={card.title}
                           onClick={() => handleNavigate(card.href.replace('/', ''))}
-                          className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer group"
+                          className="bg-white rounded-lg shadow-brand hover:shadow-brand-lg transition-all duration-300 cursor-pointer group transform hover:-translate-y-1 border border-primary-100"
                         >
                           <div className="p-6">
                             <div className="flex items-center mb-4">
-                              <div className={`p-3 rounded-lg ${card.color} text-white`}>
+                              <div className={`p-3 rounded-lg ${card.color} text-white shadow-md`}>
                                 <IconComponent className="h-6 w-6" />
                               </div>
                             </div>
-                            <h3 className="text-lg font-semibold text-gray-900 mb-2 group-hover:text-primary-600 transition-colors">
+                            <h3 className="text-lg font-semibold text-neutral-900 mb-2 group-hover:text-primary-600 transition-colors font-brand">
                               {card.title}
                             </h3>
-                            <p className="text-gray-600 text-sm">
+                            <p className="text-neutral-600 text-sm">
                               {card.description}
                             </p>
                           </div>
@@ -236,8 +234,8 @@ function App() {
                   </div>
 
                   {/* Recent Activity Section */}
-                  <div className="bg-white rounded-lg shadow-md p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
+                  <div className="bg-white rounded-lg shadow-brand p-6 border border-primary-100">
+                    <h3 className="text-lg font-semibold text-neutral-900 mb-4 font-brand">Recent Activity</h3>
                     <div className="space-y-4">
                       <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
                         <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
@@ -284,19 +282,19 @@ function App() {
                           setCurrentAccount(scenario);
                           setCurrentProfile(scenario.profiles[0]);
                         }}
-                        className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-all hover:scale-105 text-left"
+                        className="bg-white p-6 rounded-lg shadow-brand hover:shadow-brand-lg transition-all duration-300 hover:scale-105 text-left border border-primary-100 group"
                       >
-                        <h3 className="text-lg font-semibold text-gray-900 mb-2 capitalize">
+                        <h3 className="text-lg font-semibold text-neutral-900 mb-2 capitalize font-brand group-hover:text-primary-600 transition-colors">
                           {key.replace(/([A-Z])/g, ' $1').toLowerCase()}
                         </h3>
-                        <p className="text-sm text-gray-600 mb-3">
+                        <p className="text-sm text-neutral-600 mb-3">
                           {scenario.profiles.length} profile(s)
                         </p>
                         <div className="flex flex-wrap gap-1">
                           {scenario.profiles.map((profile, index) => (
                             <span 
                               key={index}
-                              className="inline-block px-2 py-1 text-xs bg-primary-100 text-primary-700 rounded-full capitalize"
+                              className="inline-block px-2 py-1 text-xs bg-primary-100 text-primary-700 rounded-full capitalize font-medium"
                             >
                               {profile.type}
                             </span>
@@ -307,16 +305,16 @@ function App() {
                   </div>
 
                   <div className="grid md:grid-cols-3 gap-8">
-                    <div className="bg-white p-6 rounded-lg shadow-md">
-                      <h3 className="text-xl font-semibold mb-4 text-gray-800">Multi-User Profiles</h3>
-                      <p className="text-gray-600">
+                    <div className="bg-white p-6 rounded-lg shadow-brand border border-primary-100">
+                      <h3 className="text-xl font-semibold mb-4 text-neutral-800 font-brand">Multi-User Profiles</h3>
+                      <p className="text-neutral-600">
                         Support for students, parents, teachers, and adult learners with role-based access and profile switching.
                       </p>
                     </div>
                     
-                    <div className="bg-white p-6 rounded-lg shadow-md">
-                      <h3 className="text-xl font-semibold mb-4 text-gray-800">Comprehensive Features</h3>
-                      <p className="text-gray-600">
+                    <div className="bg-white p-6 rounded-lg shadow-brand border border-primary-100">
+                      <h3 className="text-xl font-semibold mb-4 text-neutral-800 font-brand">Comprehensive Features</h3>
+                      <p className="text-neutral-600">
                         Scheduling, enrollment, attendance, billing, payroll, and communication tools all in one platform.
                       </p>
                     </div>

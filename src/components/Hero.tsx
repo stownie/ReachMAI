@@ -45,14 +45,14 @@ const Hero: React.FC<HeroProps> = ({ currentProfile }) => {
   };
 
   return (
-    <section className="bg-gradient-to-r from-primary-500 to-primary-700 text-white py-16">
+    <section className="bg-gradient-to-r from-primary-600 via-primary-500 to-accent-500 text-white py-16 shadow-brand-lg">
       <div className="container mx-auto px-4 text-center">
-        <h2 className="text-4xl font-bold mb-4">{getWelcomeMessage()}</h2>
+        <h2 className="text-4xl font-bold mb-4 font-brand">{getWelcomeMessage()}</h2>
         <p className="text-lg mb-8 max-w-2xl mx-auto opacity-90">
           {getSubMessage()}
         </p>
         {!currentProfile && (
-          <button className="bg-white text-primary-600 px-8 py-3 rounded-lg font-semibold hover:bg-primary-50 transition-colors">
+          <button className="bg-white text-primary-600 px-8 py-3 rounded-lg font-semibold hover:bg-primary-50 transition-all duration-200 shadow-brand hover:shadow-brand-lg transform hover:-translate-y-0.5">
             Sign In
           </button>
         )}

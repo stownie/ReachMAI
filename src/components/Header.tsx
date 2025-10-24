@@ -69,23 +69,39 @@ const Header: React.FC<HeaderProps> = ({
 
   const getProfileColor = (type: string) => {
     const colors = {
-      student: 'bg-blue-500',
-      parent: 'bg-green-500',
-      teacher: 'bg-purple-500',
-      adult: 'bg-orange-500',
+      student: 'bg-primary-500',
+      parent: 'bg-accent-500',
+      teacher: 'bg-secondary-500',
+      adult: 'bg-neutral-500',
     };
-    return colors[type as keyof typeof colors] || 'bg-gray-500';
+    return colors[type as keyof typeof colors] || 'bg-neutral-500';
   };
 
   const navItems = getNavItems();
 
   return (
-    <header className="bg-white shadow-sm border-b border-gray-200">
+    <header className="bg-white shadow-brand border-b border-primary-100">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <div className="flex-shrink-0">
-            <h1 className="text-2xl font-bold text-primary-600">ReachMAI</h1>
+          <div className="flex-shrink-0 flex items-center space-x-3">
+            <img 
+              src="https://i.imgur.com/ftfheaH_d.png?maxwidth=520&shape=thumb&fidelity=high" 
+              alt="ReachMAI Logo" 
+              className="h-10 w-auto"
+              onError={(e) => {
+                // Fallback if image doesn't load
+                e.currentTarget.style.display = 'none';
+                const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                if (fallback) fallback.style.display = 'block';
+              }}
+            />
+            <h1 
+              className="text-2xl font-bold text-primary-600 font-brand"
+              style={{ display: 'none' }}
+            >
+              ReachMAI
+            </h1>
           </div>
 
           {/* Desktop Navigation */}
@@ -94,7 +110,7 @@ const Header: React.FC<HeaderProps> = ({
               <button
                 key={item.href}
                 onClick={() => onNavigate?.(item.href)}
-                className="text-gray-600 hover:text-primary-600 px-3 py-2 text-sm font-medium transition-colors"
+                className="text-neutral-600 hover:text-primary-600 px-3 py-2 text-sm font-medium transition-all duration-200 hover:bg-primary-50 rounded-lg"
               >
                 {item.label}
               </button>
@@ -105,7 +121,7 @@ const Header: React.FC<HeaderProps> = ({
           <div className="flex items-center space-x-4">
             {/* Notifications */}
             {currentProfile && (
-              <button className="p-2 text-gray-600 hover:text-primary-600 transition-colors">
+              <button className="p-2 text-neutral-600 hover:text-primary-600 transition-all duration-200 hover:bg-primary-50 rounded-lg">
                 <Bell className="h-5 w-5" />
               </button>
             )}
@@ -217,7 +233,7 @@ const Header: React.FC<HeaderProps> = ({
             {/* Mobile Menu Button */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="md:hidden p-2 text-gray-600 hover:text-primary-600 transition-colors"
+              className="md:hidden p-2 text-neutral-600 hover:text-primary-600 transition-all duration-200 hover:bg-primary-50 rounded-lg"
             >
               {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
@@ -226,7 +242,7 @@ const Header: React.FC<HeaderProps> = ({
 
         {/* Mobile Navigation */}
         {isMobileMenuOpen && (
-          <div className="md:hidden border-t border-gray-200 py-2">
+          <div className="md:hidden border-t border-primary-100 py-2 bg-gradient-to-r from-primary-50 to-white">
             {navItems.map((item) => (
               <button
                 key={item.href}
@@ -234,7 +250,7 @@ const Header: React.FC<HeaderProps> = ({
                   onNavigate?.(item.href);
                   setIsMobileMenuOpen(false);
                 }}
-                className="block w-full text-left px-3 py-2 text-base font-medium text-gray-600 hover:text-primary-600 hover:bg-gray-50 transition-colors"
+                className="block w-full text-left px-4 py-3 text-base font-medium text-neutral-700 hover:text-primary-600 hover:bg-primary-100 transition-all duration-200 rounded-lg mx-2"
               >
                 {item.label}
               </button>
