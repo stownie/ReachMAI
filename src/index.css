@@ -16,7 +16,7 @@ body {
   min-width: 320px;
   min-height: 100vh;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  background-color: #fafafa;
+  background-color: #fffef8;
 }
 
 /* Calendar customizations */

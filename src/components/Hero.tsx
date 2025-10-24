@@ -45,7 +45,7 @@ const Hero: React.FC<HeroProps> = ({ currentProfile }) => {
   };
 
   return (
-    <section className="bg-gradient-to-r from-primary-600 via-primary-500 to-accent-500 text-white py-16 shadow-brand-lg">
+    <section className="bg-gradient-to-r from-secondary-700 via-primary-500 to-primary-600 text-white py-16 shadow-brand-lg">
       <div className="container mx-auto px-4 text-center">
         <h2 className="text-4xl font-bold mb-4 font-brand">{getWelcomeMessage()}</h2>
         <p className="text-lg mb-8 max-w-2xl mx-auto opacity-90">

@@ -68,14 +68,14 @@ function App() {
         title: 'Assignments',
         description: 'Track assignments and progress',
         icon: BookOpen,
-        color: 'bg-accent-500',
+        color: 'bg-secondary-500',
         href: '/assignments'
       },
       {
         title: 'Notifications',
         description: 'Stay updated with important messages',
         icon: Bell,
-        color: 'bg-secondary-500',
+        color: 'bg-primary-600',
         href: '/notifications'
       },
     ];    switch (currentProfile.type) {
@@ -138,7 +138,7 @@ function App() {
             title: 'Payroll',
             description: 'View your payroll and earnings',
             icon: DollarSign,
-            color: 'bg-accent-500',
+            color: 'bg-primary-600',
             href: '/payroll'
           },
         ];

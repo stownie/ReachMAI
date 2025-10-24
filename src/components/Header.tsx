@@ -69,10 +69,10 @@ const Header: React.FC<HeaderProps> = ({
 
   const getProfileColor = (type: string) => {
     const colors = {
-      student: 'bg-primary-500',
-      parent: 'bg-accent-500',
-      teacher: 'bg-secondary-500',
-      adult: 'bg-neutral-500',
+      student: 'bg-primary-500',  // Gold
+      parent: 'bg-accent-500',    // Cream
+      teacher: 'bg-secondary-500', // Maroon
+      adult: 'bg-primary-600',    // Darker Gold
     };
     return colors[type as keyof typeof colors] || 'bg-neutral-500';
   };
