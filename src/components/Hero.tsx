@@ -3,9 +3,10 @@ import type { UserProfile } from '../types';
 
 interface HeroProps {
   currentProfile?: UserProfile;
+  onShowAuth?: () => void;
 }
 
-const Hero: React.FC<HeroProps> = ({ currentProfile }) => {
+const Hero: React.FC<HeroProps> = ({ currentProfile, onShowAuth }) => {
   const getWelcomeMessage = () => {
     if (!currentProfile) return "Welcome to ReachMAI";
     
@@ -52,7 +53,10 @@ const Hero: React.FC<HeroProps> = ({ currentProfile }) => {
           {getSubMessage()}
         </p>
         {!currentProfile && (
-          <button className="bg-white text-primary-600 px-8 py-3 rounded-lg font-semibold hover:bg-primary-50 transition-all duration-200 shadow-brand hover:shadow-brand-lg transform hover:-translate-y-0.5">
+          <button 
+            onClick={onShowAuth}
+            className="bg-white text-primary-600 px-8 py-3 rounded-lg font-semibold hover:bg-primary-50 transition-all duration-200 shadow-brand hover:shadow-brand-lg transform hover:-translate-y-0.5"
+          >
             Sign In
           </button>
         )}

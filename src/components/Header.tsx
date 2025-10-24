@@ -9,6 +9,7 @@ interface HeaderProps {
   onProfileSwitch?: (profileId: string) => void;
   onSignOut?: () => void;
   onNavigate?: (page: string) => void;
+  onShowAuth?: () => void;
 }
 
 const Header: React.FC<HeaderProps> = ({
@@ -16,7 +17,8 @@ const Header: React.FC<HeaderProps> = ({
   currentProfile,
   onProfileSwitch,
   onSignOut,
-  onNavigate
+  onNavigate,
+  onShowAuth
 }) => {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -221,10 +223,16 @@ const Header: React.FC<HeaderProps> = ({
               </div>
             ) : (
               <div className="flex items-center space-x-2">
-                <button className="text-gray-600 hover:text-primary-600 px-3 py-2 text-sm font-medium transition-colors">
+                <button 
+                  onClick={onShowAuth}
+                  className="text-gray-600 hover:text-primary-600 px-3 py-2 text-sm font-medium transition-colors"
+                >
                   Sign In
                 </button>
-                <button className="bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors">
+                <button 
+                  onClick={onShowAuth}
+                  className="bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors"
+                >
                   Get Started
                 </button>
               </div>

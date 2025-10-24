@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Header from './components/Header'
 import Hero from './components/Hero'
+import AuthModal from './components/AuthModal'
 import SchedulePage from './pages/SchedulePage'
 import AttendancePage from './pages/AttendancePage'
 import AssignmentPage from './pages/AssignmentPage'
@@ -14,16 +16,12 @@ import type { AuthAccount, UserProfile } from './types';
 import { mockScenarios, getMockAccountByScenario } from './lib/mockData';
 import { Calendar, Users, BookOpen, Clock, DollarSign, Bell } from 'lucide-react';
 
-function App() {
-  // Demo state - in real app this would come from auth context
-  const [currentAccount, setCurrentAccount] = useState<AuthAccount | undefined>(
-    getMockAccountByScenario('complexFamily')
-  );
-  const [currentProfile, setCurrentProfile] = useState<UserProfile | undefined>(
-    currentAccount?.profiles[0]
-  );
+function AppContent() {
+  const { account, currentProfile, isAuthenticated, logout, switchProfile, isLoading } = useAuth();
   const [currentPage, setCurrentPage] = useState<string>('dashboard');
   const [isMobile, setIsMobile] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showDemoAccounts, setShowDemoAccounts] = useState(false);
 
   // Mobile detection
   useEffect(() => {
@@ -37,16 +35,16 @@ function App() {
   }, []);
 
   const handleProfileSwitch = (profileId: string) => {
-    const profile = currentAccount?.profiles.find(p => p.id === profileId);
-    if (profile) {
-      setCurrentProfile(profile);
-    }
+    switchProfile(profileId);
   };
 
   const handleSignOut = () => {
-    setCurrentAccount(undefined);
-    setCurrentProfile(undefined);
+    logout();
     setCurrentPage('dashboard');
+  };
+
+  const handleShowAuth = () => {
+    setShowAuthModal(true);
   };
 
   const handleNavigate = (page: string) => {
@@ -191,7 +189,7 @@ function App() {
       default:
         return (
           <>
-            <Hero currentProfile={currentProfile} />
+            <Hero currentProfile={currentProfile} onShowAuth={handleShowAuth} />
             <main className="container mx-auto px-4 py-12">
               {currentProfile ? (
                 // Authenticated Dashboard
@@ -274,35 +272,70 @@ function App() {
                     </p>
                   </div>
 
-                  <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-                    {Object.entries(mockScenarios).map(([key, scenario]) => (
+                  {/* Call to Action */}
+                  <div className="text-center mb-12">
+                    <button
+                      onClick={handleShowAuth}
+                      className="bg-primary-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-primary-700 transition-all duration-300 shadow-brand hover:shadow-brand-lg transform hover:-translate-y-0.5"
+                    >
+                      Get Started Today
+                    </button>
+                    <p className="text-neutral-600 mt-4">
+                      Already have an account?{' '}
                       <button
-                        key={key}
-                        onClick={() => {
-                          setCurrentAccount(scenario);
-                          setCurrentProfile(scenario.profiles[0]);
-                        }}
-                        className="bg-white p-6 rounded-lg shadow-brand hover:shadow-brand-lg transition-all duration-300 hover:scale-105 text-left border border-primary-100 group"
+                        onClick={handleShowAuth}
+                        className="text-primary-600 hover:text-primary-700 font-medium underline"
                       >
-                        <h3 className="text-lg font-semibold text-neutral-900 mb-2 capitalize font-brand group-hover:text-primary-600 transition-colors">
-                          {key.replace(/([A-Z])/g, ' $1').toLowerCase()}
-                        </h3>
-                        <p className="text-sm text-neutral-600 mb-3">
-                          {scenario.profiles.length} profile(s)
-                        </p>
-                        <div className="flex flex-wrap gap-1">
-                          {scenario.profiles.map((profile, index) => (
-                            <span 
-                              key={index}
-                              className="inline-block px-2 py-1 text-xs bg-primary-100 text-primary-700 rounded-full capitalize font-medium"
-                            >
-                              {profile.type}
-                            </span>
-                          ))}
-                        </div>
+                        Sign in here
                       </button>
-                    ))}
+                    </p>
                   </div>
+
+                  {/* Demo Toggle */}
+                  <div className="text-center mb-8">
+                    <button
+                      onClick={() => setShowDemoAccounts(!showDemoAccounts)}
+                      className="text-sm text-neutral-500 hover:text-neutral-700 underline"
+                    >
+                      {showDemoAccounts ? 'Hide' : 'Show'} Demo Accounts
+                    </button>
+                  </div>
+
+                  {/* Demo Accounts (Hidden by Default) */}
+                  {showDemoAccounts && (
+                    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+                      {Object.entries(mockScenarios).map(([key, scenario]) => (
+                        <button
+                          key={key}
+                          onClick={() => {
+                            // Demo accounts disabled in production
+                            console.log('Demo account selected:', key);
+                          }}
+                          className="bg-white p-6 rounded-lg shadow-brand hover:shadow-brand-lg transition-all duration-300 hover:scale-105 text-left border border-primary-100 group opacity-50"
+                        >
+                          <h3 className="text-lg font-semibold text-neutral-900 mb-2 capitalize font-brand group-hover:text-primary-600 transition-colors">
+                            {key.replace(/([A-Z])/g, ' $1').toLowerCase()}
+                          </h3>
+                          <p className="text-sm text-neutral-600 mb-3">
+                            {scenario.profiles.length} profile(s)
+                          </p>
+                          <div className="flex flex-wrap gap-1">
+                            {scenario.profiles.map((profile, index) => (
+                              <span 
+                                key={index}
+                                className="inline-block px-2 py-1 text-xs bg-primary-100 text-primary-700 rounded-full capitalize font-medium"
+                              >
+                                {profile.type}
+                              </span>
+                            ))}
+                          </div>
+                          <div className="mt-2 text-xs text-orange-600 font-medium">
+                            Demo Only
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
 
                   <div className="grid md:grid-cols-3 gap-8">
                     <div className="bg-white p-6 rounded-lg shadow-brand border border-primary-100">
@@ -339,18 +372,46 @@ function App() {
     return <MobileDashboard userProfile={currentProfile} />;
   }
 
+  // Show loading spinner during initial auth check
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header 
-        currentAccount={currentAccount}
-        currentProfile={currentProfile}
+        currentAccount={account || undefined}
+        currentProfile={currentProfile || undefined}
         onProfileSwitch={handleProfileSwitch}
         onSignOut={handleSignOut}
         onNavigate={handleNavigate}
+        onShowAuth={handleShowAuth}
       />
       
       {renderCurrentPage()}
+      
+      {/* Authentication Modal */}
+      <AuthModal 
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+      />
     </div>
+  );
+}
+
+// Main App component with Auth Provider
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
 
