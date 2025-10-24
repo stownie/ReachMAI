@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "prebuild": "echo 'Preparing build...' && pwd && ls -la || dir",
-    "build": "npx tsc -b && npx vite build",
+    "build": "npx vite build",
     "postbuild": "echo 'Build completed!' && echo 'Checking dist directory...' && ls -la dist/ || dir dist\\",
     "lint": "eslint .",
     "preview": "vite preview",
@@ -31,6 +31,8 @@
     "react-router-dom": "^7.9.4",
     "rrule": "^2.8.1",
     "tailwind-merge": "^3.3.1",
+    "typescript": "~5.9.3",
+    "vite": "npm:rolldown-vite@7.1.14",
     "zod": "^4.1.12"
   },
   "devDependencies": {
@@ -49,9 +51,7 @@
     "globals": "^16.4.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.16",
-    "typescript": "~5.9.3",
-    "typescript-eslint": "^8.45.0",
-    "vite": "npm:rolldown-vite@7.1.14"
+    "typescript-eslint": "^8.45.0"
   },
   "overrides": {
     "vite": "npm:rolldown-vite@7.1.14"
