@@ -1,0 +1,58 @@
+@import "tailwindcss";
+
+/* React Big Calendar Styles */
+@import 'react-big-calendar/lib/css/react-big-calendar.css';
+
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+/* Calendar customizations */
+.rbc-calendar {
+  background-color: #ffffff;
+}
+
+.rbc-header {
+  border-bottom: 1px solid #e5e7eb;
+  background-color: #f9fafb;
+  color: #374151;
+  font-weight: 500;
+}
+
+.rbc-time-slot {
+  border-color: #f3f4f6;
+}
+
+.rbc-event {
+  border-radius: 0.375rem;
+  border: 0;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.rbc-today {
+  background-color: #eff6ff;
+}
+
+.rbc-toolbar {
+  display: none; /* We use custom toolbar */
+}
+
+.rbc-month-view {
+  border: 1px solid #e5e7eb;
+}
+
+.rbc-agenda-view {
+  border: 1px solid #e5e7eb;
+}
+
+.rbc-time-view {
+  border: 1px solid #e5e7eb;
+}
