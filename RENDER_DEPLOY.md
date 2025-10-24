@@ -60,6 +60,20 @@ For SPA routing, add this redirect rule:
 4. Runs `npm start` to launch the Express server
 5. Express serves the React app and handles all routing
 
+## Troubleshooting Build Issues:
+
+### If you get "Exited with status 127":
+This usually means a command is not found during build. Common fixes:
+- Ensure all build tools are in devDependencies (✅ included)
+- Use `npx` prefix for commands (✅ updated in package.json)
+- Check Node.js version compatibility (should be 18+)
+
+### Build Command Updated:
+- **Old**: `tsc -b && vite build`
+- **New**: `npx tsc -b && npx vite build`
+
+This ensures TypeScript and Vite are found from local node_modules.
+
 ## Performance:
 - Built bundle size: ~720KB (minified + gzipped: ~198KB)
 - Optimized for mobile-first experience
