@@ -88,7 +88,7 @@ export default function RealTimeNotificationSystem({
       reconnectTimeout = setTimeout(() => {
         console.log('Attempting to reconnect...');
         connect();
-      }, 3000);
+      }, 3000) as unknown as number;
     };
 
 
