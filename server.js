@@ -1,7 +1,7 @@
 import express from 'express';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { existsSync } from 'fs';
+import { existsSync, readdirSync } from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -13,7 +13,7 @@ const port = process.env.PORT || 3000;
 const distPath = join(__dirname, 'dist');
 console.log(`🔍 Looking for dist directory at: ${distPath}`);
 console.log(`📁 Current working directory: ${process.cwd()}`);
-console.log(`📂 Directory contents:`, existsSync(__dirname) ? require('fs').readdirSync(__dirname).slice(0, 10) : 'Directory not accessible');
+console.log(`📂 Directory contents:`, existsSync(__dirname) ? readdirSync(__dirname).slice(0, 10) : 'Directory not accessible');
 
 if (!existsSync(distPath)) {
   console.error('❌ Error: dist directory not found!');
@@ -46,7 +46,7 @@ if (!existsSync(distPath)) {
 app.use(express.static(finalDistPath));
 
 // Handle SPA routing - send all requests to index.html
-app.get('*', (req, res) => {
+app.use((req, res) => {
   res.sendFile(join(finalDistPath, 'index.html'));
 });
 
