@@ -286,3 +286,36 @@ CREATE TRIGGER update_assignment_submissions_updated_at BEFORE UPDATE ON assignm
 CREATE TRIGGER update_attendance_records_updated_at BEFORE UPDATE ON attendance_records FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_invoices_updated_at BEFORE UPDATE ON invoices FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_payroll_records_updated_at BEFORE UPDATE ON payroll_records FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Admin Roles and Permissions System
+CREATE TABLE admin_roles (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(50) UNIQUE NOT NULL,
+    description TEXT,
+    level INTEGER NOT NULL, -- 1=System Owner, 2=Super Admin, 3=Office Admin
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE admin_permissions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(100) UNIQUE NOT NULL,
+    description TEXT,
+    resource VARCHAR(50) NOT NULL, -- 'users', 'organizations', 'payroll', etc.
+    action VARCHAR(50) NOT NULL, -- 'create', 'read', 'update', 'delete', 'manage'
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE admin_role_permissions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    role_id UUID REFERENCES admin_roles(id) ON DELETE CASCADE,
+    permission_id UUID REFERENCES admin_permissions(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(role_id, permission_id)
+);
+
+-- Add admin_role_id to user_profiles for admin users
+ALTER TABLE user_profiles ADD COLUMN admin_role_id UUID REFERENCES admin_roles(id);
+
+-- Create triggers for new tables
+CREATE TRIGGER update_admin_roles_updated_at BEFORE UPDATE ON admin_roles FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

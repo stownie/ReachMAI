@@ -1,36 +1,60 @@
--- Sample Data for ReachMAI Database
--- Run this after schema.sql to populate with test data
+-- Essential Data for ReachMAI Database
+-- Only includes critical system data needed for functionality testing
 
--- Insert sample organizations
-INSERT INTO organizations (id, name, catalog_code, address, phone, email, website) VALUES
-    ('550e8400-e29b-41d4-a716-446655440001', 'Lincoln Elementary MAI', 'lincoln-elementary', '123 Education St, Learning City, LC 12345', '(555) 123-4567', 'info@lincolnmai.edu', 'https://lincolnmai.edu'),
-    ('550e8400-e29b-41d4-a716-446655440002', 'Central High MAI Academy', 'central-high', '456 Academy Ave, School Town, ST 67890', '(555) 987-6543', 'admin@centralmai.edu', 'https://centralmai.edu');
+-- Insert admin roles (required for admin functionality)
+INSERT INTO admin_roles (id, name, description, level) VALUES
+    ('550e8400-e29b-41d4-a716-446655440401', 'system_owner', 'System Owner - Full unrestricted access', 1),
+    ('550e8400-e29b-41d4-a716-446655440402', 'super_admin', 'Super Administrator - Full platform access', 2),
+    ('550e8400-e29b-41d4-a716-446655440403', 'office_admin', 'Office Administrator - All access except payroll', 3);
 
--- Insert sample programs
-INSERT INTO programs (id, organization_id, name, description, category, age_group, duration_weeks, max_students, price_per_session) VALUES
-    ('550e8400-e29b-41d4-a716-446655440011', '550e8400-e29b-41d4-a716-446655440001', 'Elementary Math Excellence', 'Advanced mathematics program for elementary students', 'Mathematics', '6-12', 12, 15, 45.00),
-    ('550e8400-e29b-41d4-a716-446655440012', '550e8400-e29b-41d4-a716-446655440001', 'Creative Writing Workshop', 'Develop writing skills through creative expression', 'Language Arts', '8-14', 8, 12, 40.00),
-    ('550e8400-e29b-41d4-a716-446655440013', '550e8400-e29b-41d4-a716-446655440002', 'High School SAT Prep', 'Comprehensive SAT preparation course', 'Test Prep', '14-18', 16, 20, 60.00);
+-- Insert core permissions
+INSERT INTO admin_permissions (id, name, description, resource, action) VALUES
+    -- User management
+    ('550e8400-e29b-41d4-a716-446655440501', 'users.manage', 'Full user management access', 'users', 'manage'),
+    ('550e8400-e29b-41d4-a716-446655440502', 'users.create', 'Create new users', 'users', 'create'),
+    ('550e8400-e29b-41d4-a716-446655440503', 'users.read', 'View user information', 'users', 'read'),
+    ('550e8400-e29b-41d4-a716-446655440504', 'users.update', 'Edit user information', 'users', 'update'),
+    ('550e8400-e29b-41d4-a716-446655440505', 'users.delete', 'Delete users', 'users', 'delete'),
+    
+    -- Organization management
+    ('550e8400-e29b-41d4-a716-446655440506', 'organizations.manage', 'Full organization management', 'organizations', 'manage'),
+    ('550e8400-e29b-41d4-a716-446655440507', 'organizations.create', 'Create organizations', 'organizations', 'create'),
+    ('550e8400-e29b-41d4-a716-446655440508', 'organizations.read', 'View organizations', 'organizations', 'read'),
+    ('550e8400-e29b-41d4-a716-446655440509', 'organizations.update', 'Edit organizations', 'organizations', 'update'),
+    ('550e8400-e29b-41d4-a716-446655440510', 'organizations.delete', 'Delete organizations', 'organizations', 'delete'),
+    
+    -- Payroll management (restricted for office admin)
+    ('550e8400-e29b-41d4-a716-446655440511', 'payroll.manage', 'Full payroll management access', 'payroll', 'manage'),
+    ('550e8400-e29b-41d4-a716-446655440512', 'payroll.create', 'Create payroll records', 'payroll', 'create'),
+    ('550e8400-e29b-41d4-a716-446655440513', 'payroll.read', 'View payroll information', 'payroll', 'read'),
+    ('550e8400-e29b-41d4-a716-446655440514', 'payroll.update', 'Edit payroll records', 'payroll', 'update'),
+    ('550e8400-e29b-41d4-a716-446655440515', 'payroll.delete', 'Delete payroll records', 'payroll', 'delete'),
+    
+    -- Other core permissions
+    ('550e8400-e29b-41d4-a716-446655440516', 'system.manage', 'System administration access', 'system', 'manage'),
+    ('550e8400-e29b-41d4-a716-446655440517', 'analytics.read', 'View analytics and reports', 'analytics', 'read');
 
--- Insert sample auth accounts (passwords are bcrypt hashed 'password123')
+-- Assign all permissions to system_owner
+INSERT INTO admin_role_permissions (role_id, permission_id) 
+SELECT '550e8400-e29b-41d4-a716-446655440401', id FROM admin_permissions;
+
+-- Assign all permissions to super_admin
+INSERT INTO admin_role_permissions (role_id, permission_id) 
+SELECT '550e8400-e29b-41d4-a716-446655440402', id FROM admin_permissions;
+
+-- Assign all permissions except payroll to office_admin
+INSERT INTO admin_role_permissions (role_id, permission_id) 
+SELECT '550e8400-e29b-41d4-a716-446655440403', id 
+FROM admin_permissions 
+WHERE resource != 'payroll';
+
+-- Insert system owner account (your account)
 INSERT INTO auth_accounts (id, email, phone, password_hash, email_verified, phone_verified) VALUES
-    ('550e8400-e29b-41d4-a716-446655440101', 'johnson.family@email.com', '+1-555-456-7890', '$2b$10$rOKlWlpT7qAJzXxp5mHlE.JvMWqcDf/aNLOeBkRy9q8x.WZtCKkMa', true, true),
-    ('550e8400-e29b-41d4-a716-446655440102', 'teacher.smith@email.com', '+1-555-234-5678', '$2b$10$rOKlWlpT7qAJzXxp5mHlE.JvMWqcDf/aNLOeBkRy9q8x.WZtCKkMa', true, false),
-    ('550e8400-e29b-41d4-a716-446655440103', 'adult.learner@email.com', '+1-555-345-6789', '$2b$10$rOKlWlpT7qAJzXxp5mHlE.JvMWqcDf/aNLOeBkRy9q8x.WZtCKkMa', true, true),
-    ('550e8400-e29b-41d4-a716-446655440104', 'admin@reachmai.com', '+1-555-000-0000', '$2b$10$rOKlWlpT7qAJzXxp5mHlE.JvMWqcDf/aNLOeBkRy9q8x.WZtCKkMa', true, true);
+    ('550e8400-e29b-41d4-a716-446655440101', 'stownsend@musicalartsinstitute.org', '+1-555-000-0001', '$2b$10$rOKlWlpT7qAJzXxp5mHlE.JvMWqcDf/aNLOeBkRy9q8x.WZtCKkMa', true, true);
 
--- Insert sample user profiles
-INSERT INTO user_profiles (id, account_id, profile_type, first_name, last_name, preferred_name, email, phone, date_of_birth, school, school_catalog) VALUES
-    -- Student profile
-    ('550e8400-e29b-41d4-a716-446655440201', '550e8400-e29b-41d4-a716-446655440101', 'student', 'Emma', 'Johnson', 'Emma', 'emma.johnson@email.com', '+1-555-456-7891', '2010-03-15', 'Lincoln Elementary School', 'lincoln-elementary'),
-    -- Parent profile (same account as student)
-    ('550e8400-e29b-41d4-a716-446655440202', '550e8400-e29b-41d4-a716-446655440101', 'parent', 'Sarah', 'Johnson', 'Sarah', 'sarah.johnson@email.com', '+1-555-456-7890', '1985-07-22', NULL, NULL),
-    -- Teacher profile
-    ('550e8400-e29b-41d4-a716-446655440203', '550e8400-e29b-41d4-a716-446655440102', 'teacher', 'Michael', 'Smith', 'Mr. Smith', 'teacher.smith@email.com', '+1-555-234-5678', '1980-11-10', NULL, NULL),
-    -- Adult learner profile
-    ('550e8400-e29b-41d4-a716-446655440204', '550e8400-e29b-41d4-a716-446655440103', 'adult', 'Jennifer', 'Davis', 'Jen', 'adult.learner@email.com', '+1-555-345-6789', '1975-09-03', NULL, NULL),
-    -- Admin profile
-    ('550e8400-e29b-41d4-a716-446655440205', '550e8400-e29b-41d4-a716-446655440104', 'admin', 'Alex', 'Rodriguez', 'Admin Alex', 'admin@reachmai.com', '+1-555-000-0000', '1985-05-15', NULL, NULL);
+-- Insert system owner profile
+INSERT INTO user_profiles (id, account_id, profile_type, first_name, last_name, preferred_name, email, phone, admin_role_id) VALUES
+    ('550e8400-e29b-41d4-a716-446655440201', '550e8400-e29b-41d4-a716-446655440101', 'admin', 'Steven', 'Townsend', 'Steven', 'stownsend@musicalartsinstitute.org', '+1-555-000-0001', '550e8400-e29b-41d4-a716-446655440401');
 
 -- Insert student-parent relationships
 INSERT INTO student_parent_relationships (student_id, parent_id, relationship_type, is_primary) VALUES

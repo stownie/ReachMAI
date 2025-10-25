@@ -47,8 +47,16 @@ export interface TeacherProfile extends UserProfile {
 
 export interface AdminProfile extends UserProfile {
   type: 'admin';
-  permissions: AdminPermission[];
+  adminRole?: AdminRole;
   organizationIds: string[];
+}
+
+export interface AdminRole {
+  id: string;
+  name: string;
+  description: string;
+  level: number; // 1=System Owner, 2=Super Admin, 3=Office Admin
+  permissions: AdminPermission[];
 }
 
 export interface AdminPermission {
@@ -56,7 +64,7 @@ export interface AdminPermission {
   name: string;
   description: string;
   resource: string;
-  actions: string[];
+  action: string;
 }
 
 // Organizations
