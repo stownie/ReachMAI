@@ -1,26 +1,28 @@
 import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import Header from './components/Header';
-import Hero from './components/Hero';
-import AuthModal from './components/AuthModal';
-import SchedulePage from './pages/SchedulePage';
-import AttendancePage from './pages/AttendancePage';
-import AssignmentPage from './pages/AssignmentPage';
-import BillingPage from './pages/BillingPage';
-import PayrollPage from './pages/PayrollPage';
-import NotificationsPage from './pages/NotificationsPage';
-import MessagesPage from './pages/MessagesPage';
-import BulkCommunicationsPage from './pages/BulkCommunicationsPage';
-import AdminDashboard from './pages/AdminDashboard';
-import { MobileDashboard } from './pages/MobileDashboard';
-import type { UserProfile } from './types';
+import Header from './components/Header'
+import Hero from './components/Hero'
+import AuthModal from './components/AuthModal'
+import SchedulePage from './pages/SchedulePage'
+import AttendancePage from './pages/AttendancePage'
+import AssignmentPage from './pages/AssignmentPage'
+import BillingPage from './pages/BillingPage'
+import PayrollPage from './pages/PayrollPage'
+import NotificationsPage from './pages/NotificationsPage'
+import MessagesPage from './pages/MessagesPage'
+import BulkCommunicationsPage from './pages/BulkCommunicationsPage'
+import AdminDashboard from './pages/AdminDashboard'
+import { MobileDashboard } from './pages/MobileDashboard'
+import type { AuthAccount, UserProfile } from './types';
+import { mockScenarios, getMockAccountByScenario } from './lib/mockData';
 import { Calendar, Users, BookOpen, Clock, DollarSign, Bell, Building2, BarChart3, Settings } from 'lucide-react';
 
 function AppContent() {
-  const { currentProfile, logout, switchProfile, isLoading } = useAuth();
+  const { account, currentProfile, isAuthenticated, logout, switchProfile, isLoading } = useAuth();
   const [currentPage, setCurrentPage] = useState<string>('dashboard');
   const [isMobile, setIsMobile] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showDemoAccounts, setShowDemoAccounts] = useState(false);
 
   // Mobile detection
   useEffect(() => {
@@ -58,29 +60,34 @@ function AppContent() {
         title: 'Schedule',
         description: 'View and manage your calendar',
         icon: Calendar,
-        color: 'bg-primary',
+        color: 'bg-primary-500',
         href: '/schedule'
       },
       {
         title: 'Assignments',
         description: 'Track assignments and progress',
         icon: BookOpen,
-        color: 'bg-secondary',
+        color: 'bg-secondary-500',
         href: '/assignments'
       },
       {
         title: 'Notifications',
         description: 'Stay updated with important messages',
         icon: Bell,
-        color: 'bg-yellow-600',
+        color: 'bg-primary-600',
         href: '/notifications'
       },
-    ];
-
-    switch (currentProfile.type) {
+    ];    switch (currentProfile.type) {
       case 'student':
         return [
           ...baseCards,
+          {
+            title: 'Assignments',
+            description: 'Check your homework and projects',
+            icon: BookOpen,
+            color: 'bg-green-500',
+            href: '/assignments'
+          },
           {
             title: 'Progress',
             description: 'Track your learning progress',
@@ -97,14 +104,14 @@ function AppContent() {
             title: 'Students',
             description: 'Manage your children\'s profiles',
             icon: Users,
-            color: 'bg-green-500',
+            color: 'bg-accent-500',
             href: '/students'
           },
           {
             title: 'Billing',
             description: 'View invoices and payments',
             icon: DollarSign,
-            color: 'bg-blue-500',
+            color: 'bg-neutral-500',
             href: '/billing'
           },
         ];
@@ -116,21 +123,21 @@ function AppContent() {
             title: 'Classes',
             description: 'Manage your teaching schedule',
             icon: Users,
-            color: 'bg-secondary',
+            color: 'bg-secondary-500',
             href: '/classes'
           },
           {
             title: 'Attendance',
             description: 'Track student attendance',
             icon: Clock,
-            color: 'bg-primary',
+            color: 'bg-primary-500',
             href: '/attendance'
           },
           {
             title: 'Payroll',
             description: 'View your payroll and earnings',
             icon: DollarSign,
-            color: 'bg-green-600',
+            color: 'bg-primary-600',
             href: '/payroll'
           },
         ];
@@ -142,14 +149,14 @@ function AppContent() {
             title: 'Programs',
             description: 'Explore available programs',
             icon: BookOpen,
-            color: 'bg-primary',
+            color: 'bg-primary-500',
             href: '/programs'
           },
           {
             title: 'Events',
             description: 'Discover upcoming events',
             icon: Bell,
-            color: 'bg-secondary',
+            color: 'bg-secondary-500',
             href: '/events'
           },
         ];
@@ -195,7 +202,7 @@ function AppContent() {
             title: 'Billing',
             description: 'Revenue and financial overview',
             icon: DollarSign,
-            color: 'bg-primary',
+            color: 'bg-primary-600',
             href: '/admin-billing'
           },
         ];
@@ -229,21 +236,21 @@ function AppContent() {
       default:
         return currentProfile ? (
           // Authenticated User Dashboard
-          <main className="min-h-screen bg-accent px-4 py-8">
-            <div className="container mx-auto">
-              {currentProfile.type === 'admin' ? (
-                <AdminDashboard currentProfile={currentProfile as any} />
-              ) : (
-                // Regular Authenticated Dashboard
-                <div>
-                  <div className="mb-8">
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                      Welcome back, {currentProfile.preferredName || currentProfile.firstName}!
-                    </h1>
-                    <p className="text-gray-600 text-lg">
-                      Here's your personalized MAI dashboard.
-                    </p>
-                  </div>
+          <main className="container mx-auto px-4 py-8">
+            {currentProfile.type === 'admin' ? (
+              <AdminDashboard currentProfile={currentProfile as any} />
+            ) : (
+              // Regular Authenticated Dashboard
+              <div>
+                <div className="mb-8">
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                    Your Dashboard
+                  </h2>
+                  <p className="text-gray-600">
+                    Welcome back, {currentProfile.preferredName || currentProfile.firstName}! 
+                    Here's what's happening in your MAI experience.
+                  </p>
+                </div>
 
                   <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
                     {dashboardCards.map((card) => {
@@ -252,7 +259,7 @@ function AppContent() {
                         <div 
                           key={card.title}
                           onClick={() => handleNavigate(card.href.replace('/', ''))}
-                          className="bg-white rounded-lg shadow-brand hover:shadow-brand-lg transition-all duration-300 cursor-pointer group transform hover:-translate-y-1 border border-gray-200"
+                          className="bg-white rounded-lg shadow-brand hover:shadow-brand-lg transition-all duration-300 cursor-pointer group transform hover:-translate-y-1 border border-primary-100"
                         >
                           <div className="p-6">
                             <div className="flex items-center mb-4">
@@ -260,10 +267,10 @@ function AppContent() {
                                 <IconComponent className="h-6 w-6" />
                               </div>
                             </div>
-                            <h3 className="text-lg font-semibold text-gray-900 mb-2 group-hover:text-primary transition-colors">
+                            <h3 className="text-lg font-semibold text-neutral-900 mb-2 group-hover:text-primary-600 transition-colors font-brand">
                               {card.title}
                             </h3>
-                            <p className="text-gray-600 text-sm">
+                            <p className="text-neutral-600 text-sm">
                               {card.description}
                             </p>
                           </div>
@@ -273,8 +280,8 @@ function AppContent() {
                   </div>
 
                   {/* Recent Activity Section */}
-                  <div className="bg-white rounded-lg shadow-brand p-6 border border-gray-200">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
+                  <div className="bg-white rounded-lg shadow-brand p-6 border border-primary-100">
+                    <h3 className="text-lg font-semibold text-neutral-900 mb-4 font-brand">Recent Activity</h3>
                     <div className="space-y-4">
                       <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
                         <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
@@ -300,69 +307,109 @@ function AppContent() {
                     </div>
                   </div>
                 </div>
-              )}
-            </div>
-          </main>
-        ) : (
-          // Public Landing Page with Hero
-          <>
-            <Hero currentProfile={undefined} onShowAuth={handleShowAuth} />
-            <main className="container mx-auto px-4 py-12">
-              <div>
-                <div className="text-center mb-16">
-                  <h2 className="text-3xl font-bold text-gray-900 mb-4">
-                    Comprehensive MAI Platform
-                  </h2>
-                  <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-                    Experience our demo with different user profiles to see how ReachMAI serves 
-                    students, parents, teachers, and adult learners.
-                  </p>
-                </div>
+                )
+              ) : (
+                // Public Landing Page
+                <div>
+                  <div className="text-center mb-16">
+                    <h2 className="text-3xl font-bold text-gray-900 mb-4">
+                      Comprehensive MAI Platform
+                    </h2>
+                    <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+                      Experience our demo with different user profiles to see how ReachMAI serves 
+                      students, parents, teachers, and adult learners.
+                    </p>
+                  </div>
 
-                {/* Call to Action */}
-                <div className="text-center mb-12">
-                  <button
-                    onClick={handleShowAuth}
-                    className="bg-primary text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-primary/90 transition-all duration-300 shadow-brand hover:shadow-brand-lg transform hover:-translate-y-0.5"
-                  >
-                    Get Started Today
-                  </button>
-                  <p className="text-gray-600 mt-4">
-                    Already have an account?{' '}
+                  {/* Call to Action */}
+                  <div className="text-center mb-12">
                     <button
                       onClick={handleShowAuth}
-                      className="text-primary hover:text-primary/80 font-medium underline"
+                      className="bg-primary-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-primary-700 transition-all duration-300 shadow-brand hover:shadow-brand-lg transform hover:-translate-y-0.5"
                     >
-                      Sign in here
+                      Get Started Today
                     </button>
-                  </p>
+                    <p className="text-neutral-600 mt-4">
+                      Already have an account?{' '}
+                      <button
+                        onClick={handleShowAuth}
+                        className="text-primary-600 hover:text-primary-700 font-medium underline"
+                      >
+                        Sign in here
+                      </button>
+                    </p>
+                  </div>
+
+                  {/* Demo Toggle */}
+                  <div className="text-center mb-8">
+                    <button
+                      onClick={() => setShowDemoAccounts(!showDemoAccounts)}
+                      className="text-sm text-neutral-500 hover:text-neutral-700 underline"
+                    >
+                      {showDemoAccounts ? 'Hide' : 'Show'} Demo Accounts
+                    </button>
+                  </div>
+
+                  {/* Demo Accounts (Hidden by Default) */}
+                  {showDemoAccounts && (
+                    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+                      {Object.entries(mockScenarios).map(([key, scenario]) => (
+                        <button
+                          key={key}
+                          onClick={() => {
+                            // Demo accounts disabled in production
+                            console.log('Demo account selected:', key);
+                          }}
+                          className="bg-white p-6 rounded-lg shadow-brand hover:shadow-brand-lg transition-all duration-300 hover:scale-105 text-left border border-primary-100 group opacity-50"
+                        >
+                          <h3 className="text-lg font-semibold text-neutral-900 mb-2 capitalize font-brand group-hover:text-primary-600 transition-colors">
+                            {key.replace(/([A-Z])/g, ' $1').toLowerCase()}
+                          </h3>
+                          <p className="text-sm text-neutral-600 mb-3">
+                            {scenario.profiles.length} profile(s)
+                          </p>
+                          <div className="flex flex-wrap gap-1">
+                            {scenario.profiles.map((profile, index) => (
+                              <span 
+                                key={index}
+                                className="inline-block px-2 py-1 text-xs bg-primary-100 text-primary-700 rounded-full capitalize font-medium"
+                              >
+                                {profile.type}
+                              </span>
+                            ))}
+                          </div>
+                          <div className="mt-2 text-xs text-orange-600 font-medium">
+                            Demo Only
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="grid md:grid-cols-3 gap-8">
+                    <div className="bg-white p-6 rounded-lg shadow-brand border border-primary-100">
+                      <h3 className="text-xl font-semibold mb-4 text-neutral-800 font-brand">Multi-User Profiles</h3>
+                      <p className="text-neutral-600">
+                        Support for students, parents, teachers, and adult learners with role-based access and profile switching.
+                      </p>
+                    </div>
+                    
+                    <div className="bg-white p-6 rounded-lg shadow-brand border border-primary-100">
+                      <h3 className="text-xl font-semibold mb-4 text-neutral-800 font-brand">Comprehensive Features</h3>
+                      <p className="text-neutral-600">
+                        Scheduling, enrollment, attendance, billing, payroll, and communication tools all in one platform.
+                      </p>
+                    </div>
+                    
+                    <div className="bg-white p-6 rounded-lg shadow-md">
+                      <h3 className="text-xl font-semibold mb-4 text-gray-800">Modern Architecture</h3>
+                      <p className="text-gray-600">
+                        Built with React, TypeScript, and modern web standards for performance and scalability.
+                      </p>
+                    </div>
+                  </div>
                 </div>
-
-
-
-                <div className="grid md:grid-cols-3 gap-8">
-                  <div className="bg-white p-6 rounded-lg shadow-brand border border-gray-200">
-                    <h3 className="text-xl font-semibold mb-4 text-gray-800">Multi-User Profiles</h3>
-                    <p className="text-gray-600">
-                      Support for students, parents, teachers, and adult learners with role-based access and profile switching.
-                    </p>
-                  </div>
-                  
-                  <div className="bg-white p-6 rounded-lg shadow-brand border border-gray-200">
-                    <h3 className="text-xl font-semibold mb-4 text-gray-800">Comprehensive Features</h3>
-                    <p className="text-gray-600">
-                      Scheduling, enrollment, attendance, billing, payroll, and communication tools all in one platform.
-                    </p>
-                  </div>
-                  
-                  <div className="bg-white p-6 rounded-lg shadow-md">
-                    <h3 className="text-xl font-semibold mb-4 text-gray-800">Modern Architecture</h3>
-                    <p className="text-gray-600">
-                      Built with React, TypeScript, and modern web standards for performance and scalability.
-                    </p>
-                  </div>
-                </div>
-              </div>
+              )}
             </main>
           </>
         );
@@ -377,9 +424,9 @@ function AppContent() {
   // Show loading spinner during initial auth check
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-accent flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading...</p>
         </div>
       </div>
@@ -387,17 +434,19 @@ function AppContent() {
   }
 
   return (
-    <div className="min-h-screen bg-accent">
+    <div className="min-h-screen bg-gray-50">
       <Header 
+        currentAccount={account || undefined}
         currentProfile={currentProfile || undefined}
         onProfileSwitch={handleProfileSwitch}
         onSignOut={handleSignOut}
-        onShowAuth={handleShowAuth}
         onNavigate={handleNavigate}
+        onShowAuth={handleShowAuth}
       />
       
       {renderCurrentPage()}
       
+      {/* Authentication Modal */}
       <AuthModal 
         isOpen={showAuthModal}
         onClose={() => setShowAuthModal(false)}
@@ -415,4 +464,4 @@ function App() {
   );
 }
 
-export default App;
+export default App
