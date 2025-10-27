@@ -139,6 +139,59 @@ class ApiClient {
   isAuthenticated(): boolean {
     return !!this.token;
   }
+
+  // Staff Management API methods
+  async getStaff(): Promise<any[]> {
+    return this.request('/staff');
+  }
+
+  async getStaffInvitations(): Promise<any[]> {
+    return this.request('/staff/invitations');
+  }
+
+  async inviteStaff(invitationData: {
+    email: string;
+    firstName: string;
+    lastName: string;
+    role: 'admin' | 'teacher' | 'office_admin';
+    adminRole?: string;
+  }): Promise<any> {
+    return this.request('/staff/invite', {
+      method: 'POST',
+      body: JSON.stringify(invitationData),
+    });
+  }
+
+  async updateStaff(staffId: string, updateData: {
+    firstName: string;
+    lastName: string;
+    role: 'admin' | 'teacher' | 'office_admin';
+    adminRole?: string;
+    status: 'active' | 'inactive';
+  }): Promise<any> {
+    return this.request(`/staff/${staffId}`, {
+      method: 'PUT',
+      body: JSON.stringify(updateData),
+    });
+  }
+
+  async deleteStaff(staffId: string): Promise<any> {
+    return this.request(`/staff/${staffId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async cancelInvitation(invitationId: string): Promise<any> {
+    return this.request(`/staff/invitations/${invitationId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async resendInvitation(invitationId: string): Promise<any> {
+    return this.request(`/staff/invitations/${invitationId}/resend`, {
+      method: 'POST',
+    });
+  }
 }
 
 // Create singleton instance

@@ -317,5 +317,23 @@ CREATE TABLE admin_role_permissions (
 -- Add admin_role_id to user_profiles for admin users
 ALTER TABLE user_profiles ADD COLUMN admin_role_id UUID REFERENCES admin_roles(id);
 
+-- Staff Invitations Table
+CREATE TABLE staff_invitations (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    email VARCHAR(255) NOT NULL,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    role VARCHAR(20) NOT NULL CHECK (role IN ('admin', 'teacher', 'office_admin')),
+    admin_role VARCHAR(50), -- For admin roles: 'system_owner', 'super_admin', 'office_admin'
+    status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'expired', 'cancelled')),
+    invited_by UUID REFERENCES user_profiles(id),
+    invited_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    accepted_at TIMESTAMP WITH TIME ZONE,
+    token VARCHAR(100) UNIQUE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Create triggers for new tables
 CREATE TRIGGER update_admin_roles_updated_at BEFORE UPDATE ON admin_roles FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Mail, Shield, User, CheckCircle, Clock, XCircle, AlertCircle, Edit2, Trash2 } from 'lucide-react';
+import { Plus, Mail, Shield, User, CheckCircle, Clock, XCircle, AlertCircle, Edit2, Trash2, RefreshCw } from 'lucide-react';
 import type { StaffInvitation, StaffMember, AdminProfile } from '../types';
+import { apiClient } from '../lib/api';
 
 interface StaffManagementPageProps {
   currentProfile: AdminProfile;
@@ -9,92 +10,136 @@ interface StaffManagementPageProps {
 const StaffManagementPage: React.FC<StaffManagementPageProps> = ({ currentProfile }) => {
   const [activeTab, setActiveTab] = useState<'staff' | 'invitations'>('staff');
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingStaff, setEditingStaff] = useState<StaffMember | null>(null);
   const [staffMembers, setStaffMembers] = useState<StaffMember[]>([]);
   const [invitations, setInvitations] = useState<StaffInvitation[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Mock data for now - will be replaced with API calls
+  // Load staff data from API
   useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      setStaffMembers([
-        {
-          id: '1',
-          email: 'stownsend@musicalartsinstitute.org',
-          firstName: 'Shane',
-          lastName: 'Townsend',
-          role: 'admin',
-          adminRole: {
-            id: 'system_owner',
-            name: 'System Owner',
-            description: 'Full system access',
-            level: 1,
-            permissions: []
-          },
-          status: 'active',
-          lastLogin: new Date('2024-10-24T10:30:00'),
-          createdAt: new Date('2024-01-01'),
-          updatedAt: new Date('2024-10-24')
-        },
-        {
-          id: '2',
-          email: 'sarah.johnson@musicalartsinstitute.org',
-          firstName: 'Sarah',
-          lastName: 'Johnson',
-          role: 'office_admin',
-          status: 'active',
-          invitedBy: '1',
-          invitedAt: new Date('2024-02-15'),
-          lastLogin: new Date('2024-10-23T14:20:00'),
-          createdAt: new Date('2024-02-16'),
-          updatedAt: new Date('2024-10-23')
-        },
-        {
-          id: '3',
-          email: 'mike.williams@musicalartsinstitute.org',
-          firstName: 'Mike',
-          lastName: 'Williams',
-          role: 'teacher',
-          status: 'active',
-          invitedBy: '1',
-          invitedAt: new Date('2024-03-01'),
-          lastLogin: new Date('2024-10-22T09:15:00'),
-          createdAt: new Date('2024-03-02'),
-          updatedAt: new Date('2024-10-22')
-        }
-      ]);
-
-      setInvitations([
-        {
-          id: '1',
-          email: 'emma.davis@musicalartsinstitute.org',
-          firstName: 'Emma',
-          lastName: 'Davis',
-          role: 'teacher',
-          status: 'pending',
-          invitedBy: '1',
-          invitedAt: new Date('2024-10-20'),
-          expiresAt: new Date('2024-10-27'),
-          token: 'abc123def456'
-        },
-        {
-          id: '2',
-          email: 'john.smith@musicalartsinstitute.org',
-          firstName: 'John',
-          lastName: 'Smith',
-          role: 'admin',
-          adminRole: 'super_admin',
-          status: 'pending',
-          invitedBy: '1',
-          invitedAt: new Date('2024-10-22'),
-          expiresAt: new Date('2024-10-29'),
-          token: 'xyz789uvw012'
-        }
-      ]);
-
-      setLoading(false);
-    }, 1000);
+    loadStaffData();
   }, []);
+
+  const loadStaffData = async () => {
+    try {
+      setLoading(true);
+      const [staffData, invitationsData] = await Promise.all([
+        apiClient.getStaff(),
+        apiClient.getStaffInvitations()
+      ]);
+      
+      setStaffMembers(staffData);
+      setInvitations(invitationsData);
+    } catch (error) {
+      console.error('Failed to load staff data:', error);
+      // Fallback to empty arrays on error
+      setStaffMembers([]);
+      setInvitations([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleInviteStaff = async (inviteData: {
+    email: string;
+    firstName: string;
+    lastName: string;
+    role: 'admin' | 'teacher' | 'office_admin';
+    adminRole?: string;
+  }) => {
+    console.log('handleInviteStaff called with:', inviteData);
+    
+    try {
+      console.log('Sending invitation...');
+      const response = await apiClient.inviteStaff(inviteData);
+      console.log('Invitation sent successfully:', response);
+      
+      setShowInviteModal(false);
+      alert('Invitation sent successfully! The staff member will receive an email at ' + inviteData.email);
+      
+      // Reload invitations to show the new one
+      await loadStaffData();
+    } catch (error) {
+      console.error('Failed to invite staff:', error);
+      alert('Failed to send invitation: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    }
+  };
+
+  const handleEditStaff = (staff: StaffMember) => {
+    setEditingStaff(staff);
+    setShowEditModal(true);
+  };
+
+  const handleUpdateStaff = async (updateData: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    role: 'admin' | 'teacher' | 'office_admin';
+    adminRole?: string;
+    status?: 'active' | 'inactive';
+  }) => {
+    if (!editingStaff) return;
+
+    try {
+      // Prepare data for API call (API doesn't accept email updates)
+      const apiUpdateData = {
+        firstName: updateData.firstName,
+        lastName: updateData.lastName,
+        role: updateData.role,
+        adminRole: updateData.adminRole,
+        status: updateData.status || 'active'
+      };
+      
+      await apiClient.updateStaff(editingStaff.id, apiUpdateData);
+      setShowEditModal(false);
+      setEditingStaff(null);
+      await loadStaffData();
+    } catch (error) {
+      console.error('Failed to update staff:', error);
+      alert('Failed to update staff member. Please try again.');
+    }
+  };
+
+  const handleDeleteStaff = async (staffId: string) => {
+    if (staffId === currentProfile.id) {
+      alert('You cannot delete your own account.');
+      return;
+    }
+
+    if (confirm('Are you sure you want to delete this staff member? This action cannot be undone.')) {
+      try {
+        await apiClient.deleteStaff(staffId);
+        await loadStaffData();
+      } catch (error) {
+        console.error('Failed to delete staff:', error);
+        alert('Failed to delete staff member. Please try again.');
+      }
+    }
+  };
+
+  const handleCancelInvitation = async (invitationId: string) => {
+    if (confirm('Are you sure you want to cancel this invitation?')) {
+      try {
+        await apiClient.cancelInvitation(invitationId);
+        await loadStaffData();
+      } catch (error) {
+        console.error('Failed to cancel invitation:', error);
+        alert('Failed to cancel invitation. Please try again.');
+      }
+    }
+  };
+
+  const handleResendInvitation = async (invitationId: string) => {
+    try {
+      await apiClient.resendInvitation(invitationId);
+      await loadStaffData();
+      alert('Invitation resent successfully!');
+    } catch (error) {
+      console.error('Failed to resend invitation:', error);
+      alert('Failed to resend invitation. Please try again.');
+    }
+  };
 
   const getRoleDisplayName = (role: string, adminRole?: string) => {
     if (role === 'admin') {
@@ -189,9 +234,18 @@ const StaffManagementPage: React.FC<StaffManagementPageProps> = ({ currentProfil
     <div className="min-h-screen bg-accent px-4 py-8">
       <div className="container mx-auto max-w-6xl">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Staff Management</h1>
-          <p className="text-gray-600">Manage staff members and invitations for your organization</p>
+        <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Staff Management</h1>
+            <p className="text-gray-600">Manage staff members and invitations for your organization</p>
+          </div>
+          <button
+            onClick={() => setShowInviteModal(true)}
+            className="bg-yellow-500 text-white px-6 py-3 rounded-lg hover:bg-yellow-600 transition-colors flex items-center space-x-2 shadow-sm"
+          >
+            <Plus className="h-5 w-5" />
+            <span className="font-medium">Invite Staff</span>
+          </button>
         </div>
 
         {/* Tabs and Actions */}
@@ -220,11 +274,13 @@ const StaffManagementPage: React.FC<StaffManagementPageProps> = ({ currentProfil
           </div>
 
           <button
-            onClick={() => setShowInviteModal(true)}
-            className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors inline-flex items-center gap-2"
+            onClick={loadStaffData}
+            disabled={loading}
+            className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors inline-flex items-center gap-2 disabled:opacity-50"
+            title="Refresh data"
           >
-            <Plus className="h-4 w-4" />
-            Invite Staff Member
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
           </button>
         </div>
 
@@ -232,8 +288,15 @@ const StaffManagementPage: React.FC<StaffManagementPageProps> = ({ currentProfil
         {activeTab === 'staff' && (
           <div className="bg-white rounded-lg shadow-brand border border-gray-200">
             <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Active Staff Members</h3>
-              <p className="text-sm text-gray-600 mt-1">Manage your team members and their roles</p>
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Active Staff Members</h3>
+                  <p className="text-sm text-gray-600 mt-1">Manage your team members and their roles</p>
+                </div>
+                <div className="text-sm text-gray-500">
+                  {staffMembers.length} {staffMembers.length === 1 ? 'member' : 'members'}
+                </div>
+              </div>
             </div>
             
             <div className="overflow-x-auto">
@@ -261,7 +324,25 @@ const StaffManagementPage: React.FC<StaffManagementPageProps> = ({ currentProfil
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {staffMembers.map((member) => {
+                  {staffMembers.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-12 text-center">
+                        <div className="flex flex-col items-center">
+                          <User className="h-12 w-12 text-gray-300 mb-4" />
+                          <h3 className="text-lg font-medium text-gray-900 mb-2">No staff members yet</h3>
+                          <p className="text-gray-500 mb-4">Get started by inviting your first staff member.</p>
+                          <button
+                            onClick={() => setShowInviteModal(true)}
+                            className="bg-yellow-500 text-white px-4 py-2 rounded-md hover:bg-yellow-600 transition-colors inline-flex items-center gap-2"
+                          >
+                            <Plus className="h-4 w-4" />
+                            Invite Staff Member
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    staffMembers.map((member) => {
                     const RoleIcon = getRoleIcon(member.role);
                     const StatusIcon = getStatusIcon(member.status);
                     
@@ -304,11 +385,19 @@ const StaffManagementPage: React.FC<StaffManagementPageProps> = ({ currentProfil
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <div className="flex items-center justify-end space-x-2">
-                            <button className="text-gray-400 hover:text-gray-600">
+                            <button 
+                              onClick={() => handleEditStaff(member)}
+                              className="text-gray-400 hover:text-yellow-600 p-1 rounded-md hover:bg-yellow-50 transition-colors"
+                              title="Edit staff member"
+                            >
                               <Edit2 className="h-4 w-4" />
                             </button>
                             {member.id !== currentProfile.id && (
-                              <button className="text-gray-400 hover:text-red-600">
+                              <button 
+                                onClick={() => handleDeleteStaff(member.id)}
+                                className="text-gray-400 hover:text-red-600 p-1 rounded-md hover:bg-red-50 transition-colors"
+                                title="Delete staff member"
+                              >
                                 <Trash2 className="h-4 w-4" />
                               </button>
                             )}
@@ -316,7 +405,7 @@ const StaffManagementPage: React.FC<StaffManagementPageProps> = ({ currentProfil
                         </td>
                       </tr>
                     );
-                  })}
+                  }))}
                 </tbody>
               </table>
             </div>
@@ -327,8 +416,15 @@ const StaffManagementPage: React.FC<StaffManagementPageProps> = ({ currentProfil
         {activeTab === 'invitations' && (
           <div className="bg-white rounded-lg shadow-brand border border-gray-200">
             <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Pending Invitations</h3>
-              <p className="text-sm text-gray-600 mt-1">Track staff invitations and their status</p>
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Pending Invitations</h3>
+                  <p className="text-sm text-gray-600 mt-1">Track staff invitations and their status</p>
+                </div>
+                <div className="text-sm text-gray-500">
+                  {invitations.length} {invitations.length === 1 ? 'invitation' : 'invitations'}
+                </div>
+              </div>
             </div>
             
             <div className="overflow-x-auto">
@@ -356,7 +452,25 @@ const StaffManagementPage: React.FC<StaffManagementPageProps> = ({ currentProfil
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {invitations.map((invitation) => {
+                  {invitations.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-12 text-center">
+                        <div className="flex flex-col items-center">
+                          <Mail className="h-12 w-12 text-gray-300 mb-4" />
+                          <h3 className="text-lg font-medium text-gray-900 mb-2">No pending invitations</h3>
+                          <p className="text-gray-500 mb-4">All invited staff have either accepted or had their invitations expired.</p>
+                          <button
+                            onClick={() => setShowInviteModal(true)}
+                            className="bg-yellow-500 text-white px-4 py-2 rounded-md hover:bg-yellow-600 transition-colors inline-flex items-center gap-2"
+                          >
+                            <Plus className="h-4 w-4" />
+                            Invite Staff Member
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    invitations.map((invitation) => {
                     const RoleIcon = getRoleIcon(invitation.role);
                     const StatusIcon = getStatusIcon(invitation.status);
                     const isExpired = new Date() > invitation.expiresAt;
@@ -402,17 +516,25 @@ const StaffManagementPage: React.FC<StaffManagementPageProps> = ({ currentProfil
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <div className="flex items-center justify-end space-x-2">
-                            <button className="text-primary hover:text-primary/80 text-sm">
+                            <button 
+                              onClick={() => handleResendInvitation(invitation.id)}
+                              className="bg-yellow-100 text-yellow-700 hover:bg-yellow-200 px-3 py-1 rounded-md text-sm font-medium transition-colors"
+                              title="Resend invitation"
+                            >
                               Resend
                             </button>
-                            <button className="text-gray-400 hover:text-red-600">
+                            <button 
+                              onClick={() => handleCancelInvitation(invitation.id)}
+                              className="text-gray-400 hover:text-red-600 p-1 rounded-md hover:bg-red-50 transition-colors"
+                              title="Cancel invitation"
+                            >
                               <Trash2 className="h-4 w-4" />
                             </button>
                           </div>
                         </td>
                       </tr>
                     );
-                  })}
+                  }))}
                 </tbody>
               </table>
             </div>
@@ -423,12 +545,19 @@ const StaffManagementPage: React.FC<StaffManagementPageProps> = ({ currentProfil
         {showInviteModal && (
           <InviteStaffModal
             onClose={() => setShowInviteModal(false)}
-            onInvite={(inviteData) => {
-              // TODO: Send invitation via API
-              console.log('Inviting staff:', inviteData);
-              setShowInviteModal(false);
-              // Refresh invitations list
+            onInvite={handleInviteStaff}
+          />
+        )}
+
+        {/* Edit Staff Modal */}
+        {showEditModal && editingStaff && (
+          <EditStaffModal
+            staff={editingStaff}
+            onClose={() => {
+              setShowEditModal(false);
+              setEditingStaff(null);
             }}
+            onUpdate={handleUpdateStaff}
           />
         )}
       </div>
@@ -445,7 +574,7 @@ interface InviteStaffModalProps {
     lastName: string;
     role: 'admin' | 'teacher' | 'office_admin';
     adminRole?: string;
-  }) => void;
+  }) => Promise<void>;
 }
 
 const InviteStaffModal: React.FC<InviteStaffModalProps> = ({ onClose, onInvite }) => {
@@ -456,10 +585,20 @@ const InviteStaffModal: React.FC<InviteStaffModalProps> = ({ onClose, onInvite }
     role: 'teacher' as 'admin' | 'teacher' | 'office_admin',
     adminRole: ''
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onInvite(formData);
+    console.log('Form submitted with data:', formData);
+    
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    
+    try {
+      await onInvite(formData);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -555,9 +694,160 @@ const InviteStaffModal: React.FC<InviteStaffModalProps> = ({ onClose, onInvite }
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors"
+              disabled={isSubmitting}
+              className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
-              Send Invitation
+              {isSubmitting && (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              )}
+              {isSubmitting ? 'Sending...' : 'Send Invitation'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// Edit Staff Modal Component
+interface EditStaffModalProps {
+  staff: StaffMember;
+  onClose: () => void;
+  onUpdate: (data: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    role: 'admin' | 'teacher' | 'office_admin';
+    adminRole?: string;
+    status?: 'active' | 'inactive';
+  }) => void;
+}
+
+const EditStaffModal: React.FC<EditStaffModalProps> = ({ staff, onClose, onUpdate }) => {
+  const [formData, setFormData] = useState({
+    firstName: staff.firstName,
+    lastName: staff.lastName,
+    email: staff.email,
+    role: staff.role,
+    adminRole: staff.adminRole?.name.toLowerCase().replace(' ', '_') || '',
+    status: staff.status as 'active' | 'inactive'
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onUpdate(formData);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-lg max-w-md w-full p-6">
+        <h2 className="text-xl font-bold text-gray-900 mb-4">Edit Staff Member</h2>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                First Name
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.firstName}
+                onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Last Name
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.lastName}
+                onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Email Address
+            </label>
+            <input
+              type="email"
+              value={formData.email}
+              readOnly
+              className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500"
+              title="Email address cannot be changed"
+            />
+            <p className="text-xs text-gray-500 mt-1">Email address cannot be modified</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Role
+            </label>
+            <select
+              value={formData.role}
+              onChange={(e) => setFormData(prev => ({ 
+                ...prev, 
+                role: e.target.value as 'admin' | 'teacher' | 'office_admin',
+                adminRole: e.target.value !== 'admin' ? '' : prev.adminRole
+              }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+            >
+              <option value="teacher">Teacher</option>
+              <option value="office_admin">Office Admin</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+
+          {formData.role === 'admin' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Admin Role
+              </label>
+              <select
+                value={formData.adminRole}
+                onChange={(e) => setFormData(prev => ({ ...prev, adminRole: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              >
+                <option value="">Select Admin Role</option>
+                <option value="super_admin">Super Admin</option>
+                <option value="office_admin">Office Admin</option>
+              </select>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Status
+            </label>
+            <select
+              value={formData.status}
+              onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value as 'active' | 'inactive' }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+            >
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+
+          <div className="flex justify-end space-x-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition-colors"
+            >
+              Update Staff Member
             </button>
           </div>
         </form>

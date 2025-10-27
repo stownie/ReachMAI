@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Routes, Route } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Header from './components/Header';
 import Hero from './components/Hero';
@@ -13,6 +14,7 @@ import MessagesPage from './pages/MessagesPage';
 import BulkCommunicationsPage from './pages/BulkCommunicationsPage';
 import AdminDashboard from './pages/AdminDashboard';
 import StaffManagementPage from './pages/StaffManagementPage';
+import AcceptInvitationPage from './pages/AcceptInvitationPage';
 import { MobileDashboard } from './pages/MobileDashboard';
 import type { UserProfile } from './types';
 import { Calendar, Users, BookOpen, Clock, DollarSign, Bell, Building2, BarChart3, Settings } from 'lucide-react';
@@ -420,7 +422,10 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <Routes>
+        <Route path="/accept-invitation" element={<AcceptInvitationPage />} />
+        <Route path="/*" element={<AppContent />} />
+      </Routes>
     </AuthProvider>
   );
 }
