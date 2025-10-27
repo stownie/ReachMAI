@@ -3,7 +3,7 @@ import type { AuthAccount, UserProfile } from '../types';
 
 const API_BASE_URL = process.env.NODE_ENV === 'production' 
   ? '' // Same domain in production
-  : 'http://localhost:3000'; // Dev server
+  : 'http://localhost:5000'; // Dev server
 
 class ApiClient {
   private token: string | null = null;
