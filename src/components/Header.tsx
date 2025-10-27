@@ -67,6 +67,7 @@ const Header: React.FC<HeaderProps> = ({
       case 'admin':
         return [
           ...baseItems,
+          { label: 'Staff', href: 'staff' },
           { label: 'Users', href: 'users' },
           { label: 'Organizations', href: 'organizations' },
           { label: 'Analytics', href: 'analytics' },

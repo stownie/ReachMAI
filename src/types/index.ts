@@ -67,6 +67,37 @@ export interface AdminPermission {
   action: string;
 }
 
+// Staff Management
+export interface StaffInvitation {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: 'admin' | 'teacher' | 'office_admin';
+  adminRole?: string; // For admin roles: 'system_owner', 'super_admin', 'office_admin'
+  status: 'pending' | 'accepted' | 'expired' | 'cancelled';
+  invitedBy: string; // Admin user ID who sent the invitation
+  invitedAt: Date;
+  expiresAt: Date;
+  acceptedAt?: Date;
+  token: string; // Unique token for invitation link
+}
+
+export interface StaffMember {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: 'admin' | 'teacher' | 'office_admin';
+  adminRole?: AdminRole;
+  status: 'active' | 'inactive' | 'pending';
+  invitedBy?: string;
+  invitedAt?: Date;
+  lastLogin?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 // Organizations
 export interface Organization {
   id: string;

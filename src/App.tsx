@@ -12,6 +12,7 @@ import NotificationsPage from './pages/NotificationsPage';
 import MessagesPage from './pages/MessagesPage';
 import BulkCommunicationsPage from './pages/BulkCommunicationsPage';
 import AdminDashboard from './pages/AdminDashboard';
+import StaffManagementPage from './pages/StaffManagementPage';
 import { MobileDashboard } from './pages/MobileDashboard';
 import type { UserProfile } from './types';
 import { Calendar, Users, BookOpen, Clock, DollarSign, Bell, Building2, BarChart3, Settings } from 'lucide-react';
@@ -157,10 +158,17 @@ function AppContent() {
       case 'admin':
         return [
           {
+            title: 'Staff',
+            description: 'Manage staff members and invitations',
+            icon: Users,
+            color: 'bg-blue-600',
+            href: '/staff'
+          },
+          {
             title: 'Users',
             description: 'Manage all platform users',
             icon: Users,
-            color: 'bg-blue-600',
+            color: 'bg-indigo-600',
             href: '/users'
           },
           {
@@ -209,6 +217,8 @@ function AppContent() {
 
   const renderCurrentPage = () => {
     switch (currentPage) {
+      case 'staff':
+        return currentProfile?.type === 'admin' ? <StaffManagementPage currentProfile={currentProfile as any} /> : null;
       case 'schedule':
         return currentProfile ? <SchedulePage currentProfile={currentProfile} /> : null;
       case 'attendance':
