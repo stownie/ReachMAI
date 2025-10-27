@@ -55,19 +55,44 @@ router.post('/auth/login', async (req, res) => {
     }
     
     // Get user profiles
-    const profilesResult = await query(
+    let profilesResult = await query(
       'SELECT * FROM user_profiles WHERE account_id = $1 AND is_active = true',
       [account.id]
     );
-    
+
+    // Fallback: If no profiles exist for system owner email, create admin profile
+    if (profilesResult.rows.length === 0 && account.email === 'admin@musicalartsinstitute.org') {
+      console.log('Creating system owner profiles for:', account.email);
+      
+      // Create admin profile
+      const adminProfileResult = await query(
+        `INSERT INTO user_profiles 
+         (account_id, profile_type, first_name, last_name, email, is_active, created_at)
+         VALUES ($1, 'admin', 'System', 'Owner', $2, true, NOW()) RETURNING *`,
+        [account.id, account.email]
+      );
+      
+      // Create admin role entry
+      await query(
+        'INSERT INTO admin_roles (user_profile_id, name, permissions, created_at) VALUES ($1, $2, $3, NOW())',
+        [adminProfileResult.rows[0].id, 'System Owner', JSON.stringify(['all'])]
+      );
+      
+      // Re-fetch profiles
+      profilesResult = await query(
+        'SELECT * FROM user_profiles WHERE account_id = $1 AND is_active = true',
+        [account.id]
+      );
+      
+      console.log('System owner profiles created successfully');
+    }
+
     // Create JWT token
     const token = jwt.sign(
       { accountId: account.id, email: account.email },
       process.env.JWT_SECRET || 'fallback-secret',
       { expiresIn: '24h' }
-    );
-    
-    res.json({
+    );    res.json({
       token,
       account: {
         id: account.id,
@@ -502,15 +527,40 @@ router.post('/staff/invite', authenticateToken, async (req, res) => {
   try {
     const { email, firstName, lastName, role, adminRole } = req.body;
 
-    // Verify user is admin
+    // Verify user is admin - check for admin profile or system owner fallback
     const userProfile = await query(
       'SELECT id, profile_type FROM user_profiles WHERE account_id = $1 AND is_active = true',
       [req.user.accountId]
     );
     
     const adminProfile = userProfile.rows.find(p => p.profile_type === 'admin');
-    if (!adminProfile) {
+    
+    // Fallback: If no admin profile found but user email matches system owner, create one
+    if (!adminProfile && req.user.email === 'admin@musicalartsinstitute.org') {
+      console.log('Creating system owner admin profile for:', req.user.email);
+      
+      // Create admin profile for system owner
+      const newAdminProfile = await query(
+        `INSERT INTO user_profiles 
+         (account_id, profile_type, first_name, last_name, email, is_active, created_at)
+         VALUES ($1, 'admin', 'System', 'Owner', $2, true, NOW()) RETURNING *`,
+        [req.user.accountId, req.user.email]
+      );
+      
+      // Create admin role entry
+      await query(
+        'INSERT INTO admin_roles (user_profile_id, name, permissions, created_at) VALUES ($1, $2, $3, NOW())',
+        [newAdminProfile.rows[0].id, 'System Owner', JSON.stringify(['all'])]
+      );
+      
+      console.log('System owner admin profile created successfully');
+      
+      // Use the newly created profile
+      var finalAdminProfile = newAdminProfile.rows[0];
+    } else if (!adminProfile) {
       return res.status(403).json({ error: 'Admin access required' });
+    } else {
+      var finalAdminProfile = adminProfile;
     }
 
     // Check if email already exists
@@ -543,7 +593,7 @@ router.post('/staff/invite', authenticateToken, async (req, res) => {
        (email, first_name, last_name, role, admin_role, status, invited_by, invited_at, expires_at, token)
        VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW() + INTERVAL '7 days', $8)
        RETURNING *`,
-      [email, firstName, lastName, role, adminRole, 'pending', adminProfile.id, invitationToken]
+      [email, firstName, lastName, role, adminRole, 'pending', finalAdminProfile.id, invitationToken]
     );
 
     const invitation = invitationResult.rows[0];
@@ -555,7 +605,7 @@ router.post('/staff/invite', authenticateToken, async (req, res) => {
       lastName,
       role,
       token: invitationToken,
-      invitedBy: adminProfile.id
+      invitedBy: finalAdminProfile.id
     });
 
     res.status(201).json({
