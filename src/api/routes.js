@@ -214,11 +214,10 @@ router.post('/auth/login', async (req, res) => {
         [account.id, account.email]
       );
       
-      // Create admin role entry
-      await query(
-        'INSERT INTO admin_roles (user_profile_id, name, permissions, created_at) VALUES ($1, $2, $3, NOW())',
-        [adminProfileResult.rows[0].id, 'System Owner', JSON.stringify(['all'])]
-      );
+      console.log('✅ System owner profile created:', adminProfileResult.rows[0].id);
+      
+      // Skip admin_roles table for now since it doesn't exist in production
+      // The system owner will be identified by email in systemOwnerEmails array
       
       // Re-fetch profiles
       profilesResult = await query(
