@@ -23,8 +23,17 @@ class EmailService {
       if (!GMAIL_CLIENT_ID || !GMAIL_CLIENT_SECRET || !GMAIL_REFRESH_TOKEN || !EMAIL_FROM) {
         console.log('⚠️  Email service not configured - missing OAuth2 credentials');
         console.log('Required: GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN, EMAIL_FROM');
+        console.log('Environment check:');
+        console.log('- GMAIL_CLIENT_ID:', GMAIL_CLIENT_ID ? `${GMAIL_CLIENT_ID.substring(0, 20)}...` : '❌ Missing');
+        console.log('- GMAIL_CLIENT_SECRET:', GMAIL_CLIENT_SECRET ? '✅ Present' : '❌ Missing');
+        console.log('- GMAIL_REFRESH_TOKEN:', GMAIL_REFRESH_TOKEN ? `${GMAIL_REFRESH_TOKEN.substring(0, 20)}...` : '❌ Missing');
+        console.log('- EMAIL_FROM:', EMAIL_FROM || '❌ Missing');
         return;
       }
+
+      console.log('🔑 OAuth2 credentials found, creating client...');
+      console.log('- Client ID:', GMAIL_CLIENT_ID.substring(0, 20) + '...');
+      console.log('- Refresh Token:', GMAIL_REFRESH_TOKEN.substring(0, 20) + '...');
 
       // Create OAuth2 client to generate access token
       this.oauth2Client = new google.auth.OAuth2(
@@ -37,8 +46,10 @@ class EmailService {
         refresh_token: GMAIL_REFRESH_TOKEN
       });
 
+      console.log('🔄 Attempting to get access token...');
       // Get access token
       const accessToken = await this.oauth2Client.getAccessToken();
+      console.log('✅ Access token obtained:', accessToken.token ? 'Success' : 'Failed');
 
       this.transporter = nodemailer.createTransport({
         service: 'gmail',
@@ -82,9 +93,22 @@ class EmailService {
 
     try {
       // Refresh access token before sending
+      console.log('📧 Preparing to send invitation email...');
       if (this.oauth2Client) {
-        const accessToken = await this.oauth2Client.getAccessToken();
-        this.transporter.options.auth.accessToken = accessToken.token;
+        console.log('🔄 Refreshing access token for email send...');
+        try {
+          const accessToken = await this.oauth2Client.getAccessToken();
+          if (accessToken.token) {
+            this.transporter.options.auth.accessToken = accessToken.token;
+            console.log('✅ Access token refreshed successfully');
+          } else {
+            console.error('❌ Failed to get access token - token is null');
+            return { success: false, message: 'Failed to refresh access token' };
+          }
+        } catch (refreshError) {
+          console.error('❌ OAuth2 token refresh failed:', refreshError.message);
+          return { success: false, message: 'OAuth2 token refresh failed: ' + refreshError.message };
+        }
       }
 
       const { email, firstName, lastName, role, token, invitedBy } = invitationData;

@@ -11,7 +11,9 @@ router.get('/health', (req, res) => {
   res.json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development'
+    environment: process.env.NODE_ENV || 'development',
+    jwt_secret_configured: !!process.env.JWT_SECRET,
+    oauth_configured: !!(process.env.GMAIL_CLIENT_ID && process.env.GMAIL_CLIENT_SECRET && process.env.GMAIL_REFRESH_TOKEN)
   });
 });
 
@@ -20,12 +22,26 @@ export const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
+  console.log('🔐 Auth check:', {
+    hasAuthHeader: !!authHeader,
+    hasToken: !!token,
+    tokenPrefix: token ? token.substring(0, 20) + '...' : 'none',
+    hasJwtSecret: !!process.env.JWT_SECRET,
+    endpoint: req.path
+  });
+
   if (!token) {
+    console.log('❌ No token provided for:', req.path);
     return res.status(401).json({ error: 'Access token required' });
   }
 
-  jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret', (err, user) => {
-    if (err) return res.status(403).json({ error: 'Invalid token' });
+  const jwtSecret = process.env.JWT_SECRET || 'fallback-secret';
+  jwt.verify(token, jwtSecret, (err, user) => {
+    if (err) {
+      console.log('❌ Token verification failed:', err.message, 'for endpoint:', req.path);
+      return res.status(403).json({ error: 'Invalid token' });
+    }
+    console.log('✅ Token verified for user:', user.accountId, 'endpoint:', req.path);
     req.user = user;
     next();
   });
