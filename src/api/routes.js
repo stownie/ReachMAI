@@ -62,6 +62,35 @@ router.post('/debug/create-owner', async (req, res) => {
   }
 });
 
+// Debug endpoint to check database schema
+router.get('/debug/schema-check', async (req, res) => {
+  try {
+    // Check the profile_type constraint
+    const constraintResult = await query(`
+      SELECT con.conname, con.consrc 
+      FROM pg_constraint con 
+      JOIN pg_class rel ON rel.oid = con.conrelid 
+      WHERE rel.relname = 'user_profiles' AND con.contype = 'c'
+    `);
+    
+    // Check current profile types in use
+    const profileTypesResult = await query(`
+      SELECT DISTINCT profile_type, COUNT(*) as count 
+      FROM user_profiles 
+      GROUP BY profile_type
+    `);
+    
+    res.json({
+      constraints: constraintResult.rows,
+      existingProfileTypes: profileTypesResult.rows
+    });
+    
+  } catch (error) {
+    console.error('❌ Failed to check schema:', error);
+    res.status(500).json({ error: 'Failed to check schema', details: error.message });
+  }
+});
+
 // Debug endpoint to reset system owner password
 router.post('/debug/reset-password', async (req, res) => {
   try {
@@ -177,11 +206,11 @@ router.post('/auth/login', async (req, res) => {
     if (profilesResult.rows.length === 0 && systemOwnerEmails.includes(account.email.toLowerCase())) {
       console.log('Creating system owner profiles for:', account.email);
       
-      // Create admin profile
+      // Create admin profile (using 'teacher' type since 'admin' may not be in production constraint)
       const adminProfileResult = await query(
         `INSERT INTO user_profiles 
          (account_id, profile_type, first_name, last_name, email, is_active, created_at)
-         VALUES ($1, 'admin', 'System', 'Owner', $2, true, NOW()) RETURNING *`,
+         VALUES ($1, 'teacher', 'System', 'Owner', $2, true, NOW()) RETURNING *`,
         [account.id, account.email]
       );
       
