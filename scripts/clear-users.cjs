@@ -26,28 +26,89 @@ async function clearAllUsers() {
     await client.query('BEGIN');
     
     // Delete in correct order to handle foreign key constraints
-    console.log('📝 Deleting user profiles...');
+    
+    // First, delete all dependent data that references user_profiles
+    console.log('� Deleting invoices...');
+    try {
+      const invoiceResult = await client.query('DELETE FROM invoices');
+      console.log(`   Deleted ${invoiceResult.rowCount} invoices`);
+    } catch (error) {
+      console.log('   Invoices table not found (skipping)');
+    }
+    
+    console.log('📊 Deleting enrollments...');
+    try {
+      const enrollmentResult = await client.query('DELETE FROM enrollments');
+      console.log(`   Deleted ${enrollmentResult.rowCount} enrollments`);
+    } catch (error) {
+      console.log('   Enrollments table not found (skipping)');
+    }
+    
+    console.log('� Deleting assignments...');
+    try {
+      const assignmentResult = await client.query('DELETE FROM assignments');
+      console.log(`   Deleted ${assignmentResult.rowCount} assignments`);
+    } catch (error) {
+      console.log('   Assignments table not found (skipping)');
+    }
+    
+    console.log('📋 Deleting attendance records...');
+    try {
+      const attendanceResult = await client.query('DELETE FROM attendance');
+      console.log(`   Deleted ${attendanceResult.rowCount} attendance records`);
+    } catch (error) {
+      console.log('   Attendance table not found (skipping)');
+    }
+    
+    console.log('💳 Deleting payments...');
+    try {
+      const paymentResult = await client.query('DELETE FROM payments');
+      console.log(`   Deleted ${paymentResult.rowCount} payments`);
+    } catch (error) {
+      console.log('   Payments table not found (skipping)');
+    }
+    
+    console.log('📮 Deleting staff invitations...');
+    try {
+      const inviteResult = await client.query('DELETE FROM staff_invitations');
+      console.log(`   Deleted ${inviteResult.rowCount} staff invitations`);
+    } catch (error) {
+      console.log('   Staff invitations table not found (skipping)');
+    }
+    
+    console.log('🔄 Deleting password reset tokens...');
+    try {
+      const tokenResult = await client.query('DELETE FROM password_reset_tokens');
+      console.log(`   Deleted ${tokenResult.rowCount} password reset tokens`);
+    } catch (error) {
+      console.log('   Password reset tokens table not found (skipping)');
+    }
+    
+    // Delete any other tables that might reference user_profiles
+    console.log('📱 Deleting sessions...');
+    try {
+      const sessionResult = await client.query('DELETE FROM user_sessions');
+      console.log(`   Deleted ${sessionResult.rowCount} sessions`);
+    } catch (error) {
+      console.log('   Sessions table not found (skipping)');
+    }
+    
+    console.log('📧 Deleting notifications...');
+    try {
+      const notificationResult = await client.query('DELETE FROM notifications');
+      console.log(`   Deleted ${notificationResult.rowCount} notifications`);
+    } catch (error) {
+      console.log('   Notifications table not found (skipping)');
+    }
+    
+    // Now delete user profiles and accounts
+    console.log('👤 Deleting user profiles...');
     const profileResult = await client.query('DELETE FROM user_profiles');
     console.log(`   Deleted ${profileResult.rowCount} user profiles`);
     
     console.log('📧 Deleting user accounts...');
     const accountResult = await client.query('DELETE FROM user_accounts');
     console.log(`   Deleted ${accountResult.rowCount} user accounts`);
-    
-    // You might also want to clean up related tables
-    console.log('🔄 Deleting password reset tokens...');
-    const tokenResult = await client.query('DELETE FROM password_reset_tokens');
-    console.log(`   Deleted ${tokenResult.rowCount} password reset tokens`);
-    
-    // Delete staff invitations if they exist
-    console.log('📮 Deleting staff invitations...');
-    try {
-      const inviteResult = await client.query('DELETE FROM staff_invitations');
-      console.log(`   Deleted ${inviteResult.rowCount} staff invitations`);
-    } catch (error) {
-      // Table might not exist yet
-      console.log('   Staff invitations table not found (skipping)');
-    }
     
     // Commit transaction
     await client.query('COMMIT');
@@ -57,7 +118,7 @@ async function clearAllUsers() {
     console.log('📊 Summary:');
     console.log(`   User Profiles: ${profileResult.rowCount} deleted`);
     console.log(`   User Accounts: ${accountResult.rowCount} deleted`);
-    console.log(`   Reset Tokens: ${tokenResult.rowCount} deleted`);
+    console.log('   All related data (invoices, enrollments, etc.) has been cleaned up');
     
     // Verify cleanup
     const remainingAccounts = await client.query('SELECT COUNT(*) FROM user_accounts');
