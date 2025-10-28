@@ -162,11 +162,15 @@ router.post('/auth/login', async (req, res) => {
     
     console.log('✅ Password valid for email:', email);
     
+    console.log('🔍 Getting user profiles for account:', account.id);
+    
     // Get user profiles
     let profilesResult = await query(
       'SELECT * FROM user_profiles WHERE account_id = $1 AND is_active = true',
       [account.id]
     );
+    
+    console.log('👤 Found profiles:', profilesResult.rows.length);
 
     // Fallback: If no profiles exist for system owner email, create admin profile
     const systemOwnerEmails = ['admin@musicalartsinstitute.org', 'stownsend@musicalartsinstitute.org'];
@@ -196,8 +200,12 @@ router.post('/auth/login', async (req, res) => {
       console.log('System owner profiles created successfully');
     }
 
+    console.log('🔐 Creating JWT token...');
+    
     // Create JWT token
     const jwtSecret = process.env.JWT_SECRET || 'fallback-secret';
+    console.log('🔑 JWT secret configured:', !!process.env.JWT_SECRET);
+    
     const token = jwt.sign(
       { accountId: account.id, email: account.email },
       jwtSecret,
@@ -207,6 +215,8 @@ router.post('/auth/login', async (req, res) => {
     console.log('✅ JWT token generated for:', account.email);
     console.log('🔑 Token prefix:', token.substring(0, 20) + '...');
     console.log('👤 Profile count:', profilesResult.rows.length);
+    
+    console.log('📤 Sending login response...');
     
     res.json({
       token,
@@ -218,8 +228,12 @@ router.post('/auth/login', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('❌ Login error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
+    res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 });
 
