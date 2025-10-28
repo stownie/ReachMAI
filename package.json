@@ -13,7 +13,7 @@
     "build:render": "npm ci && npm run build",
     "type-check": "tsc --noEmit",
     "start": "node server.js",
-    "clear-users": "node scripts/clear-users.js"
+    "clear-users": "node scripts/clear-users.cjs"
   },
   "dependencies": {
     "@date-fns/tz": "^1.4.1",
