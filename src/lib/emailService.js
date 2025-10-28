@@ -1,20 +1,21 @@
 import nodemailer from 'nodemailer';
+import { google } from 'googleapis';
 
 class EmailService {
   constructor() {
     this.transporter = null;
     this.isConfigured = false;
-    this.initTransporter();
+    this.oauth2Client = null;
+    this.initPromise = this.initTransporter();
   }
 
-  initTransporter() {
+  async initTransporter() {
     try {
       // Check if all required OAuth2 credentials are available
       const {
         GMAIL_CLIENT_ID,
         GMAIL_CLIENT_SECRET,
         GMAIL_REFRESH_TOKEN,
-        GMAIL_ACCESS_TOKEN,
         EMAIL_FROM,
         EMAIL_FROM_NAME
       } = process.env;
@@ -25,6 +26,20 @@ class EmailService {
         return;
       }
 
+      // Create OAuth2 client to generate access token
+      this.oauth2Client = new google.auth.OAuth2(
+        GMAIL_CLIENT_ID,
+        GMAIL_CLIENT_SECRET,
+        'https://developers.google.com/oauthplayground' // redirect URL
+      );
+
+      this.oauth2Client.setCredentials({
+        refresh_token: GMAIL_REFRESH_TOKEN
+      });
+
+      // Get access token
+      const accessToken = await this.oauth2Client.getAccessToken();
+
       this.transporter = nodemailer.createTransporter({
         service: 'gmail',
         auth: {
@@ -33,7 +48,7 @@ class EmailService {
           clientId: GMAIL_CLIENT_ID,
           clientSecret: GMAIL_CLIENT_SECRET,
           refreshToken: GMAIL_REFRESH_TOKEN,
-          accessToken: GMAIL_ACCESS_TOKEN, // Optional - will be generated if not provided
+          accessToken: accessToken.token,
         },
       });
 
@@ -57,12 +72,21 @@ class EmailService {
   }
 
   async sendStaffInvitation(invitationData) {
+    // Wait for initialization to complete
+    await this.initPromise;
+    
     if (!this.isConfigured) {
       console.log('⚠️  Email service not configured - invitation email not sent');
       return { success: false, message: 'Email service not configured' };
     }
 
     try {
+      // Refresh access token before sending
+      if (this.oauth2Client) {
+        const accessToken = await this.oauth2Client.getAccessToken();
+        this.transporter.options.auth.accessToken = accessToken.token;
+      }
+
       const { email, firstName, lastName, role, token, invitedBy } = invitationData;
       const baseUrl = process.env.NODE_ENV === 'production' 
         ? process.env.FRONTEND_URL || 'https://your-app.onrender.com'
