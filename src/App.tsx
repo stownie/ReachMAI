@@ -20,21 +20,10 @@ import type { UserProfile } from './types';
 import { Calendar, Users, BookOpen, Clock, DollarSign, Bell, BarChart3, Settings } from 'lucide-react';
 
 function AppContent() {
-  console.log('🚀 AppContent component is mounting...');
-  
   const { currentProfile, account, isAuthenticated, logout, switchProfile, isLoading } = useAuth();
   const [currentPage, setCurrentPage] = useState<string>('dashboard');
   const [isMobile, setIsMobile] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
-
-  // Debug logging
-  console.log('🔍 App Debug:', {
-    isAuthenticated,
-    hasAccount: !!account,
-    hasCurrentProfile: !!currentProfile,
-    currentProfileEmail: currentProfile?.email,
-    isLoading
-  });
 
   // Mobile detection - MUST come before any early returns
   useEffect(() => {
@@ -49,34 +38,14 @@ function AppContent() {
 
   // Helper function to check if user has admin access
   const isSystemAdmin = (profile: UserProfile | null): boolean => {
-    if (!profile) {
-      console.log('🔒 Admin Check: No profile found');
-      return false;
-    }
-    
-    console.log('🔒 Admin Check:', {
-      profileType: profile.type,
-      profileEmail: profile.email,
-      isAdminType: profile.type === 'admin'
-    });
+    if (!profile) return false;
     
     // Check if profile type is admin
-    if (profile.type === 'admin') {
-      console.log('✅ Admin Check: User has admin profile type');
-      return true;
-    }
+    if (profile.type === 'admin') return true;
     
     // Check if user is system owner by email (regardless of profile type)
     const systemOwnerEmails = ['admin@musicalartsinstitute.org', 'stownsend@musicalartsinstitute.org'];
-    const isSystemOwner = profile.email && systemOwnerEmails.includes(profile.email.toLowerCase());
-    
-    console.log('🔒 Admin Check: System owner check:', {
-      email: profile.email,
-      systemOwnerEmails,
-      isSystemOwner
-    });
-    
-    return Boolean(isSystemOwner);
+    return Boolean(profile.email && systemOwnerEmails.includes(profile.email.toLowerCase()));
   };
 
   // Show loading spinner while initializing - AFTER all hooks
@@ -90,6 +59,15 @@ function AppContent() {
       </div>
     );
   }
+
+  // Temporary debug - remove after fixing
+  console.log('🔍 Auth State Check:', {
+    isAuthenticated,
+    hasAccount: !!account,
+    hasCurrentProfile: !!currentProfile,
+    profileType: currentProfile?.type,
+    profileEmail: currentProfile?.email
+  });
 
   const handleProfileSwitch = (profileId: string) => {
     switchProfile(profileId);
@@ -112,7 +90,6 @@ function AppContent() {
     if (!currentProfile) return [];
 
     const isAdmin = isSystemAdmin(currentProfile);
-    console.log('📊 Dashboard Cards: Admin check result:', isAdmin);
 
     const baseCards = [
       {
@@ -474,8 +451,6 @@ function AppContent() {
 
 // Main App component with Auth Provider
 function App() {
-  console.log('🚀 Main App component is mounting...');
-  
   return (
     <AuthProvider>
       <Routes>
