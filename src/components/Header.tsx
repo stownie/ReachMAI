@@ -23,6 +23,18 @@ const Header: React.FC<HeaderProps> = ({
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  // Helper function to check if user has admin access
+  const isSystemAdmin = (profile: UserProfile | null): boolean => {
+    if (!profile) return false;
+    
+    // Check if profile type is admin
+    if (profile.type === 'admin') return true;
+    
+    // Check if user is system owner by email (regardless of profile type)
+    const systemOwnerEmails = ['admin@musicalartsinstitute.org', 'stownsend@musicalartsinstitute.org'];
+    return Boolean(profile.email && systemOwnerEmails.includes(profile.email.toLowerCase()));
+  };
+
   const getNavItems = () => {
     if (!currentProfile) return [];
     
@@ -30,6 +42,19 @@ const Header: React.FC<HeaderProps> = ({
       { label: 'Dashboard', href: 'dashboard' },
       { label: 'Schedule', href: 'schedule' },
     ];
+
+    // Check if user has admin access (by profile type or system owner email)
+    if (isSystemAdmin(currentProfile)) {
+      return [
+        ...baseItems,
+        { label: 'Staff', href: 'staff' },
+        { label: 'Users', href: 'users' },
+        { label: 'Organizations', href: 'organizations' },
+        { label: 'Analytics', href: 'analytics' },
+        { label: 'Bulk Comms', href: 'bulk-communications' },
+        { label: 'Settings', href: 'admin-settings' },
+      ];
+    }
 
     switch (currentProfile.type) {
       case 'student':

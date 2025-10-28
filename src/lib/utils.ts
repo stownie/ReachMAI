@@ -63,8 +63,10 @@ export function formatCurrency(amount: number): string {
 /**
  * Generate initials from name
  */
-export function getInitials(firstName: string, lastName: string): string {
-  return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+export function getInitials(firstName?: string, lastName?: string): string {
+  const first = firstName?.charAt(0) || '';
+  const last = lastName?.charAt(0) || '';
+  return `${first}${last}`.toUpperCase() || '??';
 }
 
 /**

@@ -17,15 +17,26 @@ import StaffManagementPage from './pages/StaffManagementPage';
 import AcceptInvitationPage from './pages/AcceptInvitationPage';
 import { MobileDashboard } from './pages/MobileDashboard';
 import type { UserProfile } from './types';
-import { Calendar, Users, BookOpen, Clock, DollarSign, Bell, Building2, BarChart3, Settings } from 'lucide-react';
+import { Calendar, Users, BookOpen, Clock, DollarSign, Bell, BarChart3, Settings } from 'lucide-react';
 
 function AppContent() {
-  const { currentProfile, logout, switchProfile, isLoading } = useAuth();
+  console.log('🚀 AppContent component is mounting...');
+  
+  const { currentProfile, account, isAuthenticated, logout, switchProfile, isLoading } = useAuth();
   const [currentPage, setCurrentPage] = useState<string>('dashboard');
   const [isMobile, setIsMobile] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
 
-  // Mobile detection
+  // Debug logging
+  console.log('🔍 App Debug:', {
+    isAuthenticated,
+    hasAccount: !!account,
+    hasCurrentProfile: !!currentProfile,
+    currentProfileEmail: currentProfile?.email,
+    isLoading
+  });
+
+  // Mobile detection - MUST come before any early returns
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth <= 768);
@@ -35,6 +46,50 @@ function AppContent() {
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  // Helper function to check if user has admin access
+  const isSystemAdmin = (profile: UserProfile | null): boolean => {
+    if (!profile) {
+      console.log('🔒 Admin Check: No profile found');
+      return false;
+    }
+    
+    console.log('🔒 Admin Check:', {
+      profileType: profile.type,
+      profileEmail: profile.email,
+      isAdminType: profile.type === 'admin'
+    });
+    
+    // Check if profile type is admin
+    if (profile.type === 'admin') {
+      console.log('✅ Admin Check: User has admin profile type');
+      return true;
+    }
+    
+    // Check if user is system owner by email (regardless of profile type)
+    const systemOwnerEmails = ['admin@musicalartsinstitute.org', 'stownsend@musicalartsinstitute.org'];
+    const isSystemOwner = profile.email && systemOwnerEmails.includes(profile.email.toLowerCase());
+    
+    console.log('🔒 Admin Check: System owner check:', {
+      email: profile.email,
+      systemOwnerEmails,
+      isSystemOwner
+    });
+    
+    return Boolean(isSystemOwner);
+  };
+
+  // Show loading spinner while initializing - AFTER all hooks
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-accent flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleProfileSwitch = (profileId: string) => {
     switchProfile(profileId);
@@ -55,6 +110,9 @@ function AppContent() {
 
   const getDashboardCards = () => {
     if (!currentProfile) return [];
+
+    const isAdmin = isSystemAdmin(currentProfile);
+    console.log('📊 Dashboard Cards: Admin check result:', isAdmin);
 
     const baseCards = [
       {
@@ -79,6 +137,54 @@ function AppContent() {
         href: '/notifications'
       },
     ];
+
+    // Check if user has admin access (by profile type or system owner email)
+    if (isSystemAdmin(currentProfile)) {
+      return [
+        {
+          title: 'Staff',
+          description: 'Manage staff members and invitations',
+          icon: Users,
+          color: 'bg-blue-600',
+          href: '/staff'
+        },
+        {
+          title: 'Schedule',
+          description: 'View and manage schedules',
+          icon: Calendar,
+          color: 'bg-primary',
+          href: '/schedule'
+        },
+        {
+          title: 'Analytics',
+          description: 'View reports and insights',
+          icon: BarChart3,
+          color: 'bg-green-600',
+          href: '/analytics'
+        },
+        {
+          title: 'Settings',
+          description: 'Manage system settings',
+          icon: Settings,
+          color: 'bg-gray-600',
+          href: '/admin-settings'
+        },
+        {
+          title: 'Billing',
+          description: 'Manage billing and payments',
+          icon: DollarSign,
+          color: 'bg-yellow-500',
+          href: '/admin-billing'
+        },
+        {
+          title: 'Communications',
+          description: 'Send bulk communications',
+          icon: Bell,
+          color: 'bg-purple-600',
+          href: '/bulk-communications'
+        },
+      ];
+    }
 
     switch (currentProfile.type) {
       case 'student':
@@ -157,59 +263,6 @@ function AppContent() {
           },
         ];
       
-      case 'admin':
-        return [
-          {
-            title: 'Staff',
-            description: 'Manage staff members and invitations',
-            icon: Users,
-            color: 'bg-blue-600',
-            href: '/staff'
-          },
-          {
-            title: 'Users',
-            description: 'Manage all platform users',
-            icon: Users,
-            color: 'bg-indigo-600',
-            href: '/users'
-          },
-          {
-            title: 'Organizations',
-            description: 'Manage schools and organizations',
-            icon: Building2,
-            color: 'bg-green-600',
-            href: '/organizations'
-          },
-          {
-            title: 'Analytics',
-            description: 'Platform insights and reports',
-            icon: BarChart3,
-            color: 'bg-purple-600',
-            href: '/analytics'
-          },
-          {
-            title: 'Notifications',
-            description: 'System-wide communications',
-            icon: Bell,
-            color: 'bg-orange-600',
-            href: '/notifications'
-          },
-          {
-            title: 'Settings',
-            description: 'Platform configuration',
-            icon: Settings,
-            color: 'bg-gray-600',
-            href: '/admin-settings'
-          },
-          {
-            title: 'Billing',
-            description: 'Revenue and financial overview',
-            icon: DollarSign,
-            color: 'bg-primary',
-            href: '/admin-billing'
-          },
-        ];
-      
       default:
         return baseCards;
     }
@@ -220,7 +273,7 @@ function AppContent() {
   const renderCurrentPage = () => {
     switch (currentPage) {
       case 'staff':
-        return currentProfile?.type === 'admin' ? <StaffManagementPage currentProfile={currentProfile as any} /> : null;
+        return isSystemAdmin(currentProfile) ? <StaffManagementPage currentProfile={currentProfile as any} /> : null;
       case 'schedule':
         return currentProfile ? <SchedulePage currentProfile={currentProfile} /> : null;
       case 'attendance':
@@ -239,15 +292,15 @@ function AppContent() {
         return <BulkCommunicationsPage />;
       case 'dashboard':
       default:
-        return currentProfile ? (
-          // Authenticated User Dashboard
-          <main className="min-h-screen bg-accent px-4 py-8">
+        return isAuthenticated && currentProfile ? (
+          // Authenticated User Dashboard Content
+          <div className="px-4 py-8">
             <div className="container mx-auto">
-              {currentProfile.type === 'admin' ? (
+              {isSystemAdmin(currentProfile) ? (
                 <AdminDashboard currentProfile={currentProfile as any} />
               ) : (
                 // Regular Authenticated Dashboard
-                <div>
+                <>
                   <div className="mb-8">
                     <h1 className="text-3xl font-bold text-gray-900 mb-2">
                       Welcome back, {currentProfile.preferredName || currentProfile.firstName}!
@@ -311,10 +364,10 @@ function AppContent() {
                       </div>
                     </div>
                   </div>
-                </div>
+                </>
               )}
             </div>
-          </main>
+          </div>
         ) : (
           // Public Landing Page with Hero
           <>
@@ -401,6 +454,7 @@ function AppContent() {
   return (
     <div className="min-h-screen bg-accent">
       <Header 
+        currentAccount={account || undefined}
         currentProfile={currentProfile || undefined}
         onProfileSwitch={handleProfileSwitch}
         onSignOut={handleSignOut}
@@ -420,6 +474,8 @@ function AppContent() {
 
 // Main App component with Auth Provider
 function App() {
+  console.log('🚀 Main App component is mounting...');
+  
   return (
     <AuthProvider>
       <Routes>
