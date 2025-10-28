@@ -12,6 +12,12 @@ class ApiClient {
     // Load token from localStorage if available
     if (typeof window !== 'undefined') {
       this.token = localStorage.getItem('reachmai_token');
+      console.log('🔑 API Client initialized:', {
+        hasLocalStorage: !!localStorage,
+        tokenInStorage: !!localStorage.getItem('reachmai_token'),
+        tokenLoaded: !!this.token,
+        tokenPrefix: this.token ? this.token.substring(0, 20) + '...' : 'none'
+      });
     }
   }
 
@@ -151,7 +157,28 @@ class ApiClient {
 
   // Check if user is authenticated
   isAuthenticated(): boolean {
+    // Always check localStorage for latest token
+    if (typeof window !== 'undefined') {
+      const storedToken = localStorage.getItem('reachmai_token');
+      if (storedToken && storedToken !== this.token) {
+        console.log('🔄 Token updated from localStorage');
+        this.token = storedToken;
+      }
+    }
     return !!this.token;
+  }
+
+  // Method to refresh token from localStorage
+  refreshTokenFromStorage(): void {
+    if (typeof window !== 'undefined') {
+      const storedToken = localStorage.getItem('reachmai_token');
+      console.log('🔄 Refreshing token from storage:', {
+        hadToken: !!this.token,
+        storageToken: !!storedToken,
+        tokenChanged: storedToken !== this.token
+      });
+      this.token = storedToken;
+    }
   }
 
   // Staff Management API methods

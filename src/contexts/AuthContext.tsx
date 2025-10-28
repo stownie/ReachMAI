@@ -71,49 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(true);
       setError(null);
       
-      console.log('Attempting login for:', email);
-      
-      // Temporary fallback for admin account while troubleshooting
-      if (email === 'stownsend@musicalartsinstitute.org' && password === 'password123') {
-        console.log('Using temporary admin fallback');
-        const mockAdminProfile: any = {
-          id: '550e8400-e29b-41d4-a716-446655440201',
-          type: 'admin',
-          firstName: 'Steven',
-          lastName: 'Townsend',
-          preferredName: 'Steven',
-          email: 'stownsend@musicalartsinstitute.org',
-          phone: '+1-555-000-0001',
-          preferredContactMethod: 'email',
-          emailVerified: true,
-          phoneVerified: true,
-          accountId: '550e8400-e29b-41d4-a716-446655440101',
-          createdAt: new Date('2024-01-01'),
-          updatedAt: new Date('2024-10-24'),
-          adminRole: {
-            id: '550e8400-e29b-41d4-a716-446655440401',
-            name: 'System Owner',
-            description: 'Full system access',
-            level: 1,
-            permissions: []
-          },
-          organizationIds: []
-        };
-
-        const mockAdminAccount: AuthAccount = {
-          id: '550e8400-e29b-41d4-a716-446655440101',
-          email: 'stownsend@musicalartsinstitute.org',
-          phone: '+1-555-000-0001',
-          profiles: [mockAdminProfile],
-          createdAt: new Date('2024-01-01'),
-          updatedAt: new Date('2024-10-24')
-        };
-        
-        setAccount(mockAdminAccount);
-        setCurrentProfile(mockAdminAccount.profiles[0]);
-        console.log('Admin login successful (fallback)');
-        return;
-      }
+      console.log('Attempting real API login for:', email);
       
       const result = await apiClient.login(email, password);
       console.log('API login successful:', result);
