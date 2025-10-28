@@ -17,6 +17,51 @@ router.get('/health', (req, res) => {
   });
 });
 
+// Debug endpoint to check/create system owner account
+router.post('/debug/create-owner', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    
+    console.log('🔧 Debug: Creating system owner account for:', email);
+    
+    // Check if account exists
+    const existingAccount = await query(
+      'SELECT id FROM auth_accounts WHERE email = $1',
+      [email]
+    );
+    
+    if (existingAccount.rows.length > 0) {
+      return res.json({ 
+        success: true, 
+        message: 'Account already exists',
+        accountId: existingAccount.rows[0].id 
+      });
+    }
+    
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 12);
+    
+    // Create account
+    const accountResult = await query(
+      'INSERT INTO auth_accounts (email, password_hash, created_at) VALUES ($1, $2, NOW()) RETURNING *',
+      [email, hashedPassword]
+    );
+    
+    const account = accountResult.rows[0];
+    console.log('✅ System owner account created:', account.id);
+    
+    res.json({ 
+      success: true, 
+      message: 'System owner account created successfully',
+      accountId: account.id
+    });
+    
+  } catch (error) {
+    console.error('❌ Failed to create system owner account:', error);
+    res.status(500).json({ error: 'Failed to create system owner account' });
+  }
+});
+
 // Middleware to verify JWT token
 export const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
