@@ -62,6 +62,46 @@ router.post('/debug/create-owner', async (req, res) => {
   }
 });
 
+// Debug endpoint to reset system owner password
+router.post('/debug/reset-password', async (req, res) => {
+  try {
+    const { email, newPassword } = req.body;
+    
+    console.log('🔧 Debug: Resetting password for:', email);
+    
+    // Only allow for system owner emails
+    const systemOwnerEmails = ['admin@musicalartsinstitute.org', 'stownsend@musicalartsinstitute.org'];
+    if (!systemOwnerEmails.includes(email.toLowerCase())) {
+      return res.status(403).json({ error: 'Not authorized for password reset' });
+    }
+    
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+    
+    // Update password
+    const result = await query(
+      'UPDATE auth_accounts SET password_hash = $1, updated_at = NOW() WHERE email = $2 RETURNING id',
+      [hashedPassword, email]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Account not found' });
+    }
+    
+    console.log('✅ Password reset successful for:', email);
+    
+    res.json({ 
+      success: true, 
+      message: 'Password reset successfully',
+      accountId: result.rows[0].id
+    });
+    
+  } catch (error) {
+    console.error('❌ Failed to reset password:', error);
+    res.status(500).json({ error: 'Failed to reset password' });
+  }
+});
+
 // Middleware to verify JWT token
 export const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
