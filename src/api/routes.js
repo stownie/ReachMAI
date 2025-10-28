@@ -91,6 +91,45 @@ router.get('/debug/schema-check', async (req, res) => {
   }
 });
 
+// Debug endpoint to update system owner profile to admin type
+router.post('/debug/update-to-admin', async (req, res) => {
+  try {
+    const { email } = req.body;
+    
+    console.log('🔧 Debug: Updating profile to admin type for:', email);
+    
+    // Only allow for system owner emails
+    const systemOwnerEmails = ['admin@musicalartsinstitute.org', 'stownsend@musicalartsinstitute.org'];
+    if (!systemOwnerEmails.includes(email.toLowerCase())) {
+      return res.status(403).json({ error: 'Not authorized for profile update' });
+    }
+    
+    // Update profile type to admin
+    const result = await query(`
+      UPDATE user_profiles 
+      SET profile_type = 'admin', updated_at = NOW() 
+      WHERE email = $1 
+      RETURNING id, profile_type, first_name, last_name
+    `, [email]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Profile not found' });
+    }
+    
+    console.log('✅ Profile updated to admin for:', email);
+    
+    res.json({ 
+      success: true, 
+      message: 'Profile updated to admin successfully',
+      profile: result.rows[0]
+    });
+    
+  } catch (error) {
+    console.error('❌ Failed to update profile:', error);
+    res.status(500).json({ error: 'Failed to update profile', details: error.message });
+  }
+});
+
 // Debug endpoint to reset system owner password
 router.post('/debug/reset-password', async (req, res) => {
   try {
