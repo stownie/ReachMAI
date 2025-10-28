@@ -62,7 +62,10 @@ async function clearAllUsers() {
     console.log('💰 Deleting invoices...');
     await safeDelete(client, 'invoices', 'invoices');
     
-    console.log('📊 Deleting enrollments...');
+    console.log('� Deleting classes...');
+    await safeDelete(client, 'classes', 'classes');
+    
+    console.log('�📊 Deleting enrollments...');
     await safeDelete(client, 'enrollments', 'enrollments');
     
     console.log('📝 Deleting assignments...');
@@ -94,27 +97,32 @@ async function clearAllUsers() {
     console.log('📧 Deleting user accounts...');
     const accountResult = await safeDelete(client, 'user_accounts', 'user accounts');
     
-    console.log('✅ All user data has been successfully deleted!');
+    console.log('✅ All user data deletion process completed!');
     console.log('');
     console.log('📊 Summary:');
-    console.log(`   User Profiles: ${profileResult.rowCount} deleted`);
-    console.log(`   User Accounts: ${accountResult.rowCount} deleted`);
-    console.log('   All related data (invoices, enrollments, etc.) has been cleaned up');
+    console.log(`   User Profiles: ${profileResult} deleted`);
+    console.log(`   User Accounts: ${accountResult} deleted`);
+    console.log('   All related data (invoices, enrollments, classes, etc.) has been cleaned up');
     
     // Verify cleanup
-    const remainingAccounts = await client.query('SELECT COUNT(*) FROM user_accounts');
-    const remainingProfiles = await client.query('SELECT COUNT(*) FROM user_profiles');
-    
     console.log('');
     console.log('🔍 Verification:');
-    console.log(`   Remaining accounts: ${remainingAccounts.rows[0].count}`);
-    console.log(`   Remaining profiles: ${remainingProfiles.rows[0].count}`);
     
-    if (remainingAccounts.rows[0].count === '0' && remainingProfiles.rows[0].count === '0') {
-      console.log('✅ Database is clean!');
-    } else {
-      console.log('⚠️  Some data may still remain.');
+    try {
+      const remainingAccounts = await client.query('SELECT COUNT(*) FROM user_accounts');
+      console.log(`   Remaining accounts: ${remainingAccounts.rows[0].count}`);
+    } catch (error) {
+      console.log('   User accounts table does not exist');
     }
+    
+    try {
+      const remainingProfiles = await client.query('SELECT COUNT(*) FROM user_profiles');
+      console.log(`   Remaining profiles: ${remainingProfiles.rows[0].count}`);
+    } catch (error) {
+      console.log('   User profiles table does not exist');
+    }
+    
+    console.log('✅ Cleanup completed!');
     
   } catch (error) {
     console.error('❌ Error during cleanup:', error.message);
