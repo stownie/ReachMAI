@@ -52,6 +52,8 @@ router.post('/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
     
+    console.log('🔐 Login attempt for:', email);
+    
     // Find user account
     const accountResult = await query(
       'SELECT * FROM auth_accounts WHERE email = $1',
@@ -59,16 +61,21 @@ router.post('/auth/login', async (req, res) => {
     );
     
     if (accountResult.rows.length === 0) {
+      console.log('❌ Account not found for email:', email);
       return res.status(401).json({ error: 'Invalid credentials' });
     }
     
     const account = accountResult.rows[0];
+    console.log('✅ Account found for:', email, 'ID:', account.id);
     
     // Verify password
     const validPassword = await bcrypt.compare(password, account.password_hash);
     if (!validPassword) {
+      console.log('❌ Invalid password for email:', email);
       return res.status(401).json({ error: 'Invalid credentials' });
     }
+    
+    console.log('✅ Password valid for email:', email);
     
     // Get user profiles
     let profilesResult = await query(
@@ -77,7 +84,8 @@ router.post('/auth/login', async (req, res) => {
     );
 
     // Fallback: If no profiles exist for system owner email, create admin profile
-    if (profilesResult.rows.length === 0 && account.email === 'admin@musicalartsinstitute.org') {
+    const systemOwnerEmails = ['admin@musicalartsinstitute.org', 'stownsend@musicalartsinstitute.org'];
+    if (profilesResult.rows.length === 0 && systemOwnerEmails.includes(account.email.toLowerCase())) {
       console.log('Creating system owner profiles for:', account.email);
       
       // Create admin profile
@@ -104,11 +112,18 @@ router.post('/auth/login', async (req, res) => {
     }
 
     // Create JWT token
+    const jwtSecret = process.env.JWT_SECRET || 'fallback-secret';
     const token = jwt.sign(
       { accountId: account.id, email: account.email },
-      process.env.JWT_SECRET || 'fallback-secret',
+      jwtSecret,
       { expiresIn: '24h' }
-    );    res.json({
+    );
+    
+    console.log('✅ JWT token generated for:', account.email);
+    console.log('🔑 Token prefix:', token.substring(0, 20) + '...');
+    console.log('👤 Profile count:', profilesResult.rows.length);
+    
+    res.json({
       token,
       account: {
         id: account.id,

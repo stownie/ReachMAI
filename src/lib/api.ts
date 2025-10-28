@@ -18,6 +18,14 @@ class ApiClient {
   private async request(endpoint: string, options: RequestInit = {}): Promise<any> {
     const url = `${API_BASE_URL}/api${endpoint}`;
     
+    // Debug logging for token usage
+    if (endpoint !== '/auth/login') {
+      console.log(`🌐 API Request to ${endpoint}:`, {
+        hasToken: !!this.token,
+        tokenPrefix: this.token ? this.token.substring(0, 20) + '...' : 'none'
+      });
+    }
+    
     const config: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
@@ -44,14 +52,20 @@ class ApiClient {
 
   // Authentication
   async login(email: string, password: string): Promise<{ token: string; account: AuthAccount }> {
+    console.log('🔐 API Client: Attempting login for:', email);
+    
     const result = await this.request('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
     
+    console.log('✅ API Client: Login successful, storing token');
+    console.log('🔑 Token received:', result.token ? result.token.substring(0, 20) + '...' : 'none');
+    
     this.token = result.token;
     if (typeof window !== 'undefined') {
       localStorage.setItem('reachmai_token', result.token);
+      console.log('💾 Token stored in localStorage');
     }
     
     return result;
