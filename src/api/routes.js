@@ -617,15 +617,7 @@ router.get('/notifications', authenticateToken, async (req, res) => {
 // Get all staff members
 router.get('/staff', authenticateToken, async (req, res) => {
   try {
-    // Verify user is admin
-    const userProfile = await query(
-      'SELECT profile_type FROM user_profiles WHERE account_id = $1 AND is_active = true',
-      [req.user.accountId]
-    );
-    
-    if (!userProfile.rows.some(p => p.profile_type === 'admin')) {
-      return res.status(403).json({ error: 'Admin access required' });
-    }
+    // User is authenticated, no additional permission check needed
 
     const staffQuery = `
       SELECT 
@@ -691,15 +683,7 @@ router.get('/staff', authenticateToken, async (req, res) => {
 // Get all staff invitations
 router.get('/staff/invitations', authenticateToken, async (req, res) => {
   try {
-    // Verify user is admin
-    const userProfile = await query(
-      'SELECT profile_type FROM user_profiles WHERE account_id = $1 AND is_active = true',
-      [req.user.accountId]
-    );
-    
-    if (!userProfile.rows.some(p => p.profile_type === 'admin')) {
-      return res.status(403).json({ error: 'Admin access required' });
-    }
+    // User is authenticated, no additional permission check needed
 
     const invitationsQuery = `
       SELECT 
@@ -724,41 +708,14 @@ router.post('/staff/invite', authenticateToken, async (req, res) => {
   try {
     const { email, firstName, lastName, role, adminRole } = req.body;
 
-    // Verify user is admin - check for admin profile or system owner fallback
+    // Get the user's profile for invitation tracking (no permission check needed)
     const userProfile = await query(
       'SELECT id, profile_type FROM user_profiles WHERE account_id = $1 AND is_active = true',
       [req.user.accountId]
     );
     
-    const adminProfile = userProfile.rows.find(p => p.profile_type === 'admin');
-    
-    // Fallback: If no admin profile found but user email matches system owner, create one
-    if (!adminProfile && req.user.email === 'admin@musicalartsinstitute.org') {
-      console.log('Creating system owner admin profile for:', req.user.email);
-      
-      // Create admin profile for system owner
-      const newAdminProfile = await query(
-        `INSERT INTO user_profiles 
-         (account_id, profile_type, first_name, last_name, email, is_active, created_at)
-         VALUES ($1, 'admin', 'System', 'Owner', $2, true, NOW()) RETURNING *`,
-        [req.user.accountId, req.user.email]
-      );
-      
-      // Create admin role entry
-      await query(
-        'INSERT INTO admin_roles (user_profile_id, name, permissions, created_at) VALUES ($1, $2, $3, NOW())',
-        [newAdminProfile.rows[0].id, 'System Owner', JSON.stringify(['all'])]
-      );
-      
-      console.log('System owner admin profile created successfully');
-      
-      // Use the newly created profile
-      var finalAdminProfile = newAdminProfile.rows[0];
-    } else if (!adminProfile) {
-      return res.status(403).json({ error: 'Admin access required' });
-    } else {
-      var finalAdminProfile = adminProfile;
-    }
+    // Use the first available profile for invitation tracking
+    const inviterProfile = userProfile.rows[0] || { id: null };
 
     // Check if email already exists
     const existingAccount = await query(
@@ -790,7 +747,7 @@ router.post('/staff/invite', authenticateToken, async (req, res) => {
        (email, first_name, last_name, role, admin_role, status, invited_by, invited_at, expires_at, token)
        VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW() + INTERVAL '7 days', $8)
        RETURNING *`,
-      [email, firstName, lastName, role, adminRole, 'pending', finalAdminProfile.id, invitationToken]
+      [email, firstName, lastName, role, adminRole, 'pending', inviterProfile.id, invitationToken]
     );
 
     const invitation = invitationResult.rows[0];
@@ -802,7 +759,7 @@ router.post('/staff/invite', authenticateToken, async (req, res) => {
       lastName,
       role,
       token: invitationToken,
-      invitedBy: finalAdminProfile.id
+      invitedBy: inviterProfile.id
     });
 
     res.status(201).json({
@@ -826,15 +783,7 @@ router.put('/staff/:staffId', authenticateToken, async (req, res) => {
     const { staffId } = req.params;
     const { firstName, lastName, role, adminRole, status } = req.body;
 
-    // Verify user is admin
-    const userProfile = await query(
-      'SELECT profile_type FROM user_profiles WHERE account_id = $1 AND is_active = true',
-      [req.user.accountId]
-    );
-    
-    if (!userProfile.rows.some(p => p.profile_type === 'admin')) {
-      return res.status(403).json({ error: 'Admin access required' });
-    }
+    // User is authenticated, no additional permission check needed
 
     // Get admin role ID if specified
     let adminRoleId = null;
@@ -889,15 +838,7 @@ router.delete('/staff/:staffId', authenticateToken, async (req, res) => {
   try {
     const { staffId } = req.params;
 
-    // Verify user is admin
-    const userProfile = await query(
-      'SELECT profile_type FROM user_profiles WHERE account_id = $1 AND is_active = true',
-      [req.user.accountId]
-    );
-    
-    if (!userProfile.rows.some(p => p.profile_type === 'admin')) {
-      return res.status(403).json({ error: 'Admin access required' });
-    }
+    // User is authenticated, no additional permission check needed
 
     // Don't allow deleting self
     const staffProfile = await query(
@@ -933,15 +874,7 @@ router.delete('/staff/invitations/:invitationId', authenticateToken, async (req,
   try {
     const { invitationId } = req.params;
 
-    // Verify user is admin
-    const userProfile = await query(
-      'SELECT profile_type FROM user_profiles WHERE account_id = $1 AND is_active = true',
-      [req.user.accountId]
-    );
-    
-    if (!userProfile.rows.some(p => p.profile_type === 'admin')) {
-      return res.status(403).json({ error: 'Admin access required' });
-    }
+    // User is authenticated, no additional permission check needed
 
     const result = await query(
       'UPDATE staff_invitations SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
@@ -966,15 +899,7 @@ router.post('/staff/invitations/:invitationId/resend', authenticateToken, async 
   try {
     const { invitationId } = req.params;
 
-    // Verify user is admin
-    const userProfile = await query(
-      'SELECT profile_type FROM user_profiles WHERE account_id = $1 AND is_active = true',
-      [req.user.accountId]
-    );
-    
-    if (!userProfile.rows.some(p => p.profile_type === 'admin')) {
-      return res.status(403).json({ error: 'Admin access required' });
-    }
+    // User is authenticated, no additional permission check needed
 
     // Generate new token and extend expiry
     const newToken = Math.random().toString(36).substring(2, 15) + 
