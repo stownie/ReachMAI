@@ -4,6 +4,7 @@ import type { AdminProfile } from '../types';
 
 interface AdminDashboardProps {
   currentProfile: AdminProfile;
+  onNavigate?: (page: string) => void;
 }
 
 interface AdminStats {
@@ -15,7 +16,7 @@ interface AdminStats {
   systemAlerts: number;
 }
 
-export default function AdminDashboard({ currentProfile }: AdminDashboardProps) {
+export default function AdminDashboard({ currentProfile, onNavigate }: AdminDashboardProps) {
   const [stats, setStats] = useState<AdminStats>({
     totalUsers: 0,
     totalOrganizations: 0,
@@ -159,19 +160,25 @@ export default function AdminDashboard({ currentProfile }: AdminDashboardProps) 
         <div className="bg-white rounded-lg shadow-md p-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-6">Quick Actions</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <button className="flex items-center space-x-3 p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
+            <button 
+              onClick={() => onNavigate?.('users')}
+              className="flex items-center space-x-3 p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+            >
               <Users className="h-5 w-5 text-blue-600" />
               <span className="text-sm font-medium text-blue-900">Manage Users</span>
+            </button>
+            
+            <button 
+              onClick={() => onNavigate?.('staff')}
+              className="flex items-center space-x-3 p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors"
+            >
+              <Users className="h-5 w-5 text-purple-600" />
+              <span className="text-sm font-medium text-purple-900">Staff Management</span>
             </button>
             
             <button className="flex items-center space-x-3 p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors">
               <Building2 className="h-5 w-5 text-green-600" />
               <span className="text-sm font-medium text-green-900">Organizations</span>
-            </button>
-            
-            <button className="flex items-center space-x-3 p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors">
-              <BarChart3 className="h-5 w-5 text-purple-600" />
-              <span className="text-sm font-medium text-purple-900">View Analytics</span>
             </button>
             
             <button className="flex items-center space-x-3 p-4 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors">

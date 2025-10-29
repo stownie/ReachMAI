@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Shield } from 'lucide-react';
+import { LogOut, Shield, Users, BarChart3 } from 'lucide-react';
 import SystemAdminAuth from '../components/SystemAdminAuth';
 import AdminDashboard from './AdminDashboard';
+import UserManagementPage from './UserManagementPage';
+import StaffManagementPage from './StaffManagementPage';
 import type { AdminProfile } from '../types';
 
 export default function SystemAdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentPage, setCurrentPage] = useState<string>('dashboard');
   const navigate = useNavigate();
 
   // Check authentication status on mount
@@ -78,8 +81,84 @@ export default function SystemAdminPage() {
         </div>
       </div>
 
-      {/* Admin Dashboard Content */}
-      <AdminDashboard currentProfile={systemAdminProfile} />
+      {/* Admin Navigation */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4">
+          <nav className="flex space-x-8">
+            <button
+              onClick={() => setCurrentPage('dashboard')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                currentPage === 'dashboard'
+                  ? 'border-amber-500 text-amber-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center space-x-2">
+                <BarChart3 className="h-4 w-4" />
+                <span>Dashboard</span>
+              </div>
+            </button>
+            
+            <button
+              onClick={() => setCurrentPage('users')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                currentPage === 'users'
+                  ? 'border-amber-500 text-amber-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center space-x-2">
+                <Users className="h-4 w-4" />
+                <span>Users</span>
+              </div>
+            </button>
+            
+            <button
+              onClick={() => setCurrentPage('staff')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                currentPage === 'staff'
+                  ? 'border-amber-500 text-amber-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center space-x-2">
+                <Shield className="h-4 w-4" />
+                <span>Staff</span>
+              </div>
+            </button>
+          </nav>
+        </div>
+      </div>
+
+      {/* Page Content */}
+      <div className="flex-1">
+        {renderCurrentPage()}
+      </div>
     </div>
   );
+
+  function renderCurrentPage() {
+    switch (currentPage) {
+      case 'users':
+        return (
+          <div className="bg-gray-50 min-h-screen">
+            <UserManagementPage currentProfile={systemAdminProfile} />
+          </div>
+        );
+      case 'staff':
+        return (
+          <div className="bg-gray-50 min-h-screen">
+            <StaffManagementPage currentProfile={systemAdminProfile} />
+          </div>
+        );
+      case 'dashboard':
+      default:
+        return (
+          <AdminDashboard 
+            currentProfile={systemAdminProfile} 
+            onNavigate={setCurrentPage}
+          />
+        );
+    }
+  }
 }

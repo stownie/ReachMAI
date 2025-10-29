@@ -14,6 +14,7 @@ import MessagesPage from './pages/MessagesPage';
 import BulkCommunicationsPage from './pages/BulkCommunicationsPage';
 import AdminDashboard from './pages/AdminDashboard';
 import StaffManagementPage from './pages/StaffManagementPage';
+import UserManagementPage from './pages/UserManagementPage';
 import AcceptInvitationPage from './pages/AcceptInvitationPage';
 import SystemAdminPage from './pages/SystemAdminPage';
 import { MobileDashboard } from './pages/MobileDashboard';
@@ -118,10 +119,17 @@ function AppContent() {
     if (isSystemAdmin(currentProfile)) {
       return [
         {
+          title: 'Users',
+          description: 'Manage all platform users',
+          icon: Users,
+          color: 'bg-blue-600',
+          href: '/users'
+        },
+        {
           title: 'Staff',
           description: 'Manage staff members and invitations',
           icon: Users,
-          color: 'bg-blue-600',
+          color: 'bg-purple-600',
           href: '/staff'
         },
         {
@@ -248,6 +256,8 @@ function AppContent() {
 
   const renderCurrentPage = () => {
     switch (currentPage) {
+      case 'users':
+        return isSystemAdmin(currentProfile) ? <UserManagementPage currentProfile={currentProfile as any} /> : null;
       case 'staff':
         return isSystemAdmin(currentProfile) ? <StaffManagementPage currentProfile={currentProfile as any} /> : null;
       case 'schedule':
@@ -273,7 +283,10 @@ function AppContent() {
           <div className="px-4 py-8">
             <div className="container mx-auto">
               {isSystemAdmin(currentProfile) ? (
-                <AdminDashboard currentProfile={currentProfile as any} />
+                <AdminDashboard 
+                  currentProfile={currentProfile as any} 
+                  onNavigate={setCurrentPage}
+                />
               ) : (
                 // Regular Authenticated Dashboard
                 <>

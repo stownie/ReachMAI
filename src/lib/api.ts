@@ -231,6 +231,61 @@ class ApiClient {
       method: 'POST',
     });
   }
+
+  // User Management API methods
+  async getAllUsers(): Promise<any[]> {
+    return this.request('/users');
+  }
+
+  async createUser(userData: {
+    email: string;
+    phone?: string;
+    password: string;
+    profile: {
+      type: 'student' | 'parent' | 'adult' | 'teacher' | 'admin' | 'manager';
+      firstName: string;
+      lastName: string;
+      preferredName?: string;
+      preferredContactMethod: 'email' | 'phone';
+    };
+  }): Promise<any> {
+    return this.request('/users', {
+      method: 'POST',
+      body: JSON.stringify(userData),
+    });
+  }
+
+  async updateUser(userId: string, updateData: {
+    profile: {
+      firstName: string;
+      lastName: string;
+      preferredName?: string;
+      phone?: string;
+      preferredContactMethod: 'email' | 'phone';
+    };
+  }): Promise<any> {
+    return this.request(`/users/${userId}`, {
+      method: 'PUT',
+      body: JSON.stringify(updateData),
+    });
+  }
+
+  async deleteUser(userId: string): Promise<any> {
+    return this.request(`/users/${userId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async bulkDeleteUsers(userIds: string[]): Promise<any> {
+    return this.request('/users/bulk-delete', {
+      method: 'POST',
+      body: JSON.stringify({ userIds }),
+    });
+  }
+
+  async getUsersByType(userType: 'student' | 'parent' | 'adult' | 'teacher' | 'admin' | 'manager'): Promise<any[]> {
+    return this.request(`/users?type=${userType}`);
+  }
 }
 
 // Create singleton instance
