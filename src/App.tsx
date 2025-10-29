@@ -38,7 +38,7 @@ function AppContent() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Helper function to check if user has admin access
+  // Helper function to check if user has system admin access (for system admin page only)
   const isSystemAdmin = (profile: UserProfile | null): boolean => {
     if (!profile) return false;
     
@@ -246,6 +246,84 @@ function AppContent() {
             href: '/events'
           },
         ];
+
+      case 'admin':
+        return [
+          {
+            title: 'Users',
+            description: 'Manage all platform users',
+            icon: Users,
+            color: 'bg-blue-600',
+            href: '/users'
+          },
+          {
+            title: 'Staff',
+            description: 'Manage staff members and invitations',
+            icon: Users,
+            color: 'bg-purple-600',
+            href: '/staff'
+          },
+          {
+            title: 'Schedule',
+            description: 'View and manage schedules',
+            icon: Calendar,
+            color: 'bg-primary',
+            href: '/schedule'
+          },
+          {
+            title: 'Analytics',
+            description: 'View reports and insights',
+            icon: BarChart3,
+            color: 'bg-green-600',
+            href: '/analytics'
+          },
+          {
+            title: 'Billing',
+            description: 'Manage billing and payments',
+            icon: DollarSign,
+            color: 'bg-yellow-500',
+            href: '/billing'
+          },
+          {
+            title: 'Communications',
+            description: 'Send bulk communications',
+            icon: Bell,
+            color: 'bg-purple-600',
+            href: '/bulk-communications'
+          },
+        ];
+
+      case 'manager':
+        return [
+          {
+            title: 'Staff',
+            description: 'Manage staff members and invitations',
+            icon: Users,
+            color: 'bg-purple-600',
+            href: '/staff'
+          },
+          {
+            title: 'Schedule',
+            description: 'View and manage schedules',
+            icon: Calendar,
+            color: 'bg-primary',
+            href: '/schedule'
+          },
+          {
+            title: 'Analytics',
+            description: 'View operational insights',
+            icon: BarChart3,
+            color: 'bg-green-600',
+            href: '/analytics'
+          },
+          {
+            title: 'Communications',
+            description: 'Send communications',
+            icon: Bell,
+            color: 'bg-orange-600',
+            href: '/bulk-communications'
+          },
+        ];
       
       default:
         return baseCards;
@@ -257,9 +335,9 @@ function AppContent() {
   const renderCurrentPage = () => {
     switch (currentPage) {
       case 'users':
-        return isSystemAdmin(currentProfile) ? <UserManagementPage currentProfile={currentProfile as any} /> : null;
+        return currentProfile ? <UserManagementPage currentProfile={currentProfile as any} /> : null;
       case 'staff':
-        return isSystemAdmin(currentProfile) ? <StaffManagementPage currentProfile={currentProfile as any} /> : null;
+        return currentProfile ? <StaffManagementPage currentProfile={currentProfile as any} /> : null;
       case 'schedule':
         return currentProfile ? <SchedulePage currentProfile={currentProfile} /> : null;
       case 'attendance':
@@ -282,7 +360,7 @@ function AppContent() {
           // Authenticated User Dashboard Content
           <div className="px-4 py-8">
             <div className="container mx-auto">
-              {isSystemAdmin(currentProfile) ? (
+              {(currentProfile.type === 'admin' || currentProfile.type === 'manager') ? (
                 <AdminDashboard 
                   currentProfile={currentProfile as any} 
                   onNavigate={setCurrentPage}
