@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Send, Paperclip, Search, Plus, MoreVertical, Archive, Trash2, MessageSquare, User, Users } from 'lucide-react';
 import { getRelativeTime } from '../../lib/notifications';
-import { getMockMessageThreads, getMockMessages } from '../../lib/mockNotificationData';
+// Mock data removed - use real API data
 import type { MessageThread, Message } from '../../types';
 
 interface MessageCenterProps {
@@ -14,7 +14,8 @@ export default function MessageCenter({ userProfile }: MessageCenterProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [showNewMessageModal, setShowNewMessageModal] = useState(false);
 
-  const threads = getMockMessageThreads(userProfile?.id);
+  // TODO: Replace with real API calls
+  const threads: any[] = [];
   const filteredThreads = threads.filter(thread => 
     searchTerm === '' || 
     thread.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -22,7 +23,7 @@ export default function MessageCenter({ userProfile }: MessageCenterProps) {
   );
 
   const currentThread = selectedThread ? threads.find(t => t.id === selectedThread) : null;
-  const messages = selectedThread ? getMockMessages(selectedThread) : [];
+  const messages: any[] = [];
 
   const handleSendMessage = () => {
     if (!newMessage.trim() || !selectedThread) return;

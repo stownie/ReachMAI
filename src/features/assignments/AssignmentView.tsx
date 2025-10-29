@@ -27,11 +27,7 @@ import {
   sortAssignmentsByPriority,
   calculateGradeLetter
 } from '../../lib/assignments';
-import {
-  mockAssignments,
-  getAssignmentsForTeacher,
-  getSubmissionsForAssignment
-} from '../../lib/mockAssignmentData';
+// Mock data removed - use real API data
 
 interface AssignmentViewProps {
   currentProfile: UserProfile;
@@ -42,10 +38,8 @@ type AssignmentFilter = 'all' | 'active' | 'overdue' | 'completed';
 export default function AssignmentView({ currentProfile }: AssignmentViewProps) {
   const [selectedFilter, setSelectedFilter] = useState<AssignmentFilter>('all');
   const [searchTerm, setSearchTerm] = useState('');
-  // Filter assignments based on user profile
-  const userAssignments = currentProfile.type === 'teacher' 
-    ? getAssignmentsForTeacher(currentProfile.id)
-    : mockAssignments; // For admins, show all
+  // TODO: Replace with real API calls based on user profile
+  const userAssignments: any[] = [];
 
   // Apply filters
   const filteredAssignments = userAssignments.filter(assignment => {
@@ -87,7 +81,8 @@ export default function AssignmentView({ currentProfile }: AssignmentViewProps) 
   const renderAssignmentCard = (assignment: Assignment) => {
     const status = getAssignmentStatus(assignment);
     const priority = getAssignmentPriority(assignment);
-    const submissions = getSubmissionsForAssignment(assignment.id);
+    // TODO: Replace with real API call
+    const submissions: any[] = [];
     const stats = calculateAssignmentStats(10, submissions); // Assuming 10 students per class
 
     return (

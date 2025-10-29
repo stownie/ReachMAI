@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { TrendingUp, TrendingDown, Minus, Calendar, BookOpen, Clock, AlertTriangle, CheckCircle, User, Award } from 'lucide-react';
-import { getStudentAnalytics } from '../../lib/mockAnalyticsData';
+// Mock data removed - use real API data
 import type { SubjectPerformance } from '../../types';
 
 interface StudentPerformanceAnalyticsProps {
@@ -18,7 +18,8 @@ export default function StudentPerformanceAnalyticsView({
   // Avoid unused variable warnings
   console.log('showAllStudents:', showAllStudents);
   
-  const analytics = getStudentAnalytics(selectedStudent);
+  // TODO: Replace with real API call
+  const analytics = null;
 
   if (!analytics) {
     return (

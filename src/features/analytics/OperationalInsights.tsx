@@ -9,7 +9,7 @@ import {
   BarChart3,
   Download
 } from 'lucide-react';
-import { mockOperationalMetrics } from '../../lib/mockAnalyticsData';
+// Mock data removed - use real API data
 import type { 
   OperationalMetrics, 
   ClassUtilizationMetric, 
@@ -23,7 +23,8 @@ export default function OperationalInsights() {
   const [selectedView, setSelectedView] = useState<'overview' | 'classes' | 'teachers' | 'facilities' | 'trends'>('overview');
   const [selectedPeriod, setSelectedPeriod] = useState('monthly');
 
-  const metrics: OperationalMetrics = mockOperationalMetrics;
+  // TODO: Replace with real API call
+  const metrics = null;
 
 
 

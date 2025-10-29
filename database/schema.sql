@@ -20,7 +20,7 @@ CREATE TABLE auth_accounts (
 CREATE TABLE user_profiles (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     account_id UUID REFERENCES auth_accounts(id) ON DELETE CASCADE,
-    profile_type VARCHAR(20) NOT NULL CHECK (profile_type IN ('student', 'parent', 'teacher', 'adult', 'admin')),
+    profile_type VARCHAR(20) NOT NULL CHECK (profile_type IN ('student', 'parent', 'adult', 'teacher', 'admin', 'manager')),
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
     preferred_name VARCHAR(100),
@@ -287,35 +287,7 @@ CREATE TRIGGER update_attendance_records_updated_at BEFORE UPDATE ON attendance_
 CREATE TRIGGER update_invoices_updated_at BEFORE UPDATE ON invoices FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_payroll_records_updated_at BEFORE UPDATE ON payroll_records FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
--- Admin Roles and Permissions System
-CREATE TABLE admin_roles (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name VARCHAR(50) UNIQUE NOT NULL,
-    description TEXT,
-    level INTEGER NOT NULL, -- 1=System Owner, 2=Super Admin, 3=Office Admin
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
 
-CREATE TABLE admin_permissions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name VARCHAR(100) UNIQUE NOT NULL,
-    description TEXT,
-    resource VARCHAR(50) NOT NULL, -- 'users', 'organizations', 'payroll', etc.
-    action VARCHAR(50) NOT NULL, -- 'create', 'read', 'update', 'delete', 'manage'
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE admin_role_permissions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    role_id UUID REFERENCES admin_roles(id) ON DELETE CASCADE,
-    permission_id UUID REFERENCES admin_permissions(id) ON DELETE CASCADE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(role_id, permission_id)
-);
-
--- Add admin_role_id to user_profiles for admin users
-ALTER TABLE user_profiles ADD COLUMN admin_role_id UUID REFERENCES admin_roles(id);
 
 -- Staff Invitations Table
 CREATE TABLE staff_invitations (
@@ -323,8 +295,7 @@ CREATE TABLE staff_invitations (
     email VARCHAR(255) NOT NULL,
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
-    role VARCHAR(20) NOT NULL CHECK (role IN ('admin', 'teacher', 'office_admin')),
-    admin_role VARCHAR(50), -- For admin roles: 'system_owner', 'super_admin', 'office_admin'
+    role VARCHAR(20) NOT NULL CHECK (role IN ('admin', 'teacher', 'manager')),
     status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'expired', 'cancelled')),
     invited_by UUID REFERENCES user_profiles(id),
     invited_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -336,4 +307,4 @@ CREATE TABLE staff_invitations (
 );
 
 -- Create triggers for new tables
-CREATE TRIGGER update_admin_roles_updated_at BEFORE UPDATE ON admin_roles FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_staff_invitations_updated_at BEFORE UPDATE ON staff_invitations FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

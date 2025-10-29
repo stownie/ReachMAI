@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Bell, MessageSquare, Settings, Filter, Check, X, Clock, AlertCircle } from 'lucide-react';
 import { getNotificationIcon, getNotificationColor, getRelativeTime } from '../../lib/notifications';
-import { getMockNotifications, getMockMessageThreads, getMockAnnouncements, getNotificationStats } from '../../lib/mockNotificationData';
+// Mock data removed - use real API data
 import type { Notification, MessageThread, Announcement } from '../../types';
 
 interface NotificationCenterProps {
@@ -13,10 +13,10 @@ export default function NotificationCenter({ userProfile }: NotificationCenterPr
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
 
-  // Mock data - in real app, this would come from API based on userProfile
-  const notifications = getMockNotifications(userProfile?.id, filter === 'unread');
-  const messageThreads = getMockMessageThreads(userProfile?.id);
-  const announcements = getMockAnnouncements(userProfile?.type);
+  // TODO: Replace with real API calls based on userProfile
+  const notifications: Notification[] = [];
+  const messageThreads: MessageThread[] = [];
+  const announcements: Announcement[] = [];
   const stats = getNotificationStats(userProfile?.id);
 
   const handleMarkAsRead = (notificationId: string) => {

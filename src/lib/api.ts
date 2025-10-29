@@ -194,8 +194,7 @@ class ApiClient {
     email: string;
     firstName: string;
     lastName: string;
-    role: 'admin' | 'teacher' | 'office_admin';
-    adminRole?: string;
+    role: 'admin' | 'teacher' | 'manager';
   }): Promise<any> {
     return this.request('/staff/invite', {
       method: 'POST',
@@ -206,8 +205,7 @@ class ApiClient {
   async updateStaff(staffId: string, updateData: {
     firstName: string;
     lastName: string;
-    role: 'admin' | 'teacher' | 'office_admin';
-    adminRole?: string;
+    role: 'admin' | 'teacher' | 'manager';
     status: 'active' | 'inactive';
   }): Promise<any> {
     return this.request(`/staff/${staffId}`, {

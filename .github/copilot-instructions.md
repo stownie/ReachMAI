@@ -36,7 +36,7 @@ src/
 1. Use feature-based development in `src/features/`
 2. Create reusable components in `src/components/`
 3. Define types in `src/types/index.ts`
-4. Use mock data from `src/lib/mockData.ts` for development
+4. Mock data has been removed - use real API integration
 5. Follow the established patterns for new features
 
 ## User Types & Navigation

@@ -29,6 +29,12 @@ A comprehensive **Music Academy & Instruction (MAI)** platform built with modern
 - **Real-Time Sync** - Live schedule changes and communication
 - **Collaborative Features** - Shared calendars and messaging
 
+### 🔐 **System Administration**
+- **Secure Access** - Environment variable-based authentication
+- **Full System Control** - Complete platform oversight and management
+- **Admin Dashboard** - Same interface as regular admin with enhanced privileges
+- **Access Route** - Available at `/systemadmin` with credential prompt
+
 ### 💾 **Offline-First Architecture**
 - **Local Data Storage** - Works without internet connection
 - **Smart Sync** - Automatic data synchronization when online
@@ -57,6 +63,10 @@ npm run dev
 
 # Open in browser
 # http://localhost:5173
+
+# For system admin access
+# Navigate to http://localhost:5173/systemadmin
+# Default credentials: systemadmin / SecurePassword123!
 ```
 
 ### Build for Production

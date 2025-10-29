@@ -15,6 +15,7 @@ import BulkCommunicationsPage from './pages/BulkCommunicationsPage';
 import AdminDashboard from './pages/AdminDashboard';
 import StaffManagementPage from './pages/StaffManagementPage';
 import AcceptInvitationPage from './pages/AcceptInvitationPage';
+import SystemAdminPage from './pages/SystemAdminPage';
 import { MobileDashboard } from './pages/MobileDashboard';
 import type { UserProfile } from './types';
 import { Calendar, Users, BookOpen, Clock, DollarSign, Bell, BarChart3, Settings } from 'lucide-react';
@@ -88,8 +89,6 @@ function AppContent() {
 
   const getDashboardCards = () => {
     if (!currentProfile) return [];
-
-    const isAdmin = isSystemAdmin(currentProfile);
 
     const baseCards = [
       {
@@ -454,6 +453,7 @@ function App() {
   return (
     <AuthProvider>
       <Routes>
+        <Route path="/systemadmin" element={<SystemAdminPage />} />
         <Route path="/accept-invitation" element={<AcceptInvitationPage />} />
         <Route path="/*" element={<AppContent />} />
       </Routes>

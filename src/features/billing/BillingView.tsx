@@ -27,13 +27,7 @@ import {
   sortInvoicesByPriority,
   generateBillingSummary
 } from '../../lib/billing';
-import {
-  mockInvoices,
-  mockPayments,
-  mockFamilyAccounts,
-  getInvoicesForFamily,
-  getPaymentsForFamily
-} from '../../lib/mockBillingData';
+// Mock data removed - use real API data
 
 interface BillingViewProps {
   currentProfile: UserProfile;
@@ -47,13 +41,9 @@ export default function BillingView({ currentProfile }: BillingViewProps) {
   const [selectedView, setSelectedView] = useState<'invoices' | 'payments' | 'families'>('invoices');
 
   // Filter data based on user profile and view
-  const allInvoices = currentProfile.type === 'parent' 
-    ? getInvoicesForFamily('family-001') // Demo: show first family's invoices
-    : mockInvoices;
-
-  const allPayments = currentProfile.type === 'parent'
-    ? getPaymentsForFamily('family-001')
-    : mockPayments;
+  // TODO: Replace with real API calls based on currentProfile
+  const allInvoices: any[] = [];
+  const allPayments: any[] = [];
 
   // Apply filters
   const filteredInvoices = allInvoices.filter(invoice => {
@@ -200,7 +190,8 @@ export default function BillingView({ currentProfile }: BillingViewProps) {
   };
 
   const renderPaymentCard = (payment: any) => {
-    const invoice = payment.invoiceId ? mockInvoices.find(i => i.id === payment.invoiceId) : null;
+    // TODO: Replace with real API call
+    const invoice = null;
     
     return (
       <div key={payment.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">

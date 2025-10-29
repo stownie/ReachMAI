@@ -19,10 +19,7 @@ import {
   getAttendanceStatusText,
   formatCheckInTime
 } from '../../lib/attendance';
-import { 
-  mockAttendanceSessions,
-  getAttendanceForMeeting
-} from '../../lib/mockAttendanceData';
+// Mock data removed - use real API data
 
 interface AttendanceViewProps {
   currentProfile: UserProfile;
@@ -34,7 +31,8 @@ export default function AttendanceView({ currentProfile }: AttendanceViewProps) 
   const [selectedFilter, setSelectedFilter] = useState<AttendanceFilter>('today');
   const [searchTerm, setSearchTerm] = useState('');
   // Filter data based on user profile
-  const filteredSessions = mockAttendanceSessions.filter(session => {
+  // TODO: Replace with real API call
+  const filteredSessions = [].filter((session: any) => {
     if (currentProfile.type === 'teacher') {
       return session.teacherId === currentProfile.id;
     }
@@ -59,7 +57,8 @@ export default function AttendanceView({ currentProfile }: AttendanceViewProps) 
   };
 
   const renderSessionCard = (session: AttendanceSession) => {
-    const attendanceRecords = getAttendanceForMeeting(session.meetingInstanceId);
+    // TODO: Replace with real API call
+    const attendanceRecords: any[] = [];
     const totalStudents = session.studentsPresent + session.studentsAbsent + session.studentsLate + session.studentsExcused;
     const stats = calculateAttendanceStats(totalStudents, attendanceRecords);
 

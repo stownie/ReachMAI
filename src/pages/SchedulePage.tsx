@@ -3,7 +3,7 @@ import { Calendar, Users, Clock, MapPin } from 'lucide-react';
 import ScheduleView from '../features/scheduling/ScheduleView';
 import EnrollmentManager from '../features/scheduling/EnrollmentManager';
 import type { UserProfile, Meeting, Section } from '../types';
-import { mockSchedulingData } from '../lib/mockSchedulingData';
+// Mock data removed - use real API data
 import { generateId } from '../lib/utils';
 
 interface SchedulePageProps {
@@ -13,9 +13,10 @@ interface SchedulePageProps {
 const SchedulePage: React.FC<SchedulePageProps> = ({ currentProfile }) => {
   const [activeTab, setActiveTab] = useState<'schedule' | 'enrollments'>('schedule');
   const [selectedSection, setSelectedSection] = useState<Section | null>(null);
-  const [meetings] = useState(mockSchedulingData.meetings);
-  const [sections] = useState(mockSchedulingData.sections);
-  const [enrollments, setEnrollments] = useState(mockSchedulingData.enrollments);
+  // TODO: Replace with real API calls
+  const [meetings] = useState<any[]>([]);
+  const [sections] = useState<any[]>([]);
+  const [enrollments, setEnrollments] = useState<any[]>([]);
 
   const handleMeetingClick = (meeting: Meeting, _instance: { start: Date; end: Date }) => {
     const section = sections.find(s => s.id === meeting.sectionId);
@@ -268,7 +269,8 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ currentProfile }) => {
                         </h3>
                         <div className="grid gap-4">
                           {sections.map(section => {
-                            const program = mockSchedulingData.programs.find(p => p.id === section.programId);
+                            // TODO: Replace with real API call
+                            const program = null;
                             const enrolledCount = section.enrollments.filter(e => e.status === 'enrolled').length;
                             const waitlistedCount = section.enrollments.filter(e => e.status === 'waitlisted').length;
                             

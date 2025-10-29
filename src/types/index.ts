@@ -12,7 +12,7 @@ export interface AuthAccount {
 
 export interface UserProfile {
   id: string;
-  type: 'adult' | 'student' | 'parent' | 'teacher' | 'admin';
+  type: 'student' | 'parent' | 'adult' | 'teacher' | 'admin' | 'manager';
   firstName: string;
   lastName: string;
   preferredName?: string;
@@ -47,24 +47,7 @@ export interface TeacherProfile extends UserProfile {
 
 export interface AdminProfile extends UserProfile {
   type: 'admin';
-  adminRole?: AdminRole;
   organizationIds: string[];
-}
-
-export interface AdminRole {
-  id: string;
-  name: string;
-  description: string;
-  level: number; // 1=System Owner, 2=Super Admin, 3=Office Admin
-  permissions: AdminPermission[];
-}
-
-export interface AdminPermission {
-  id: string;
-  name: string;
-  description: string;
-  resource: string;
-  action: string;
 }
 
 // Staff Management
@@ -73,8 +56,7 @@ export interface StaffInvitation {
   email: string;
   firstName: string;
   lastName: string;
-  role: 'admin' | 'teacher' | 'office_admin';
-  adminRole?: string; // For admin roles: 'system_owner', 'super_admin', 'office_admin'
+  role: 'admin' | 'teacher' | 'manager';
   status: 'pending' | 'accepted' | 'expired' | 'cancelled';
   invitedBy: string; // Admin user ID who sent the invitation
   invitedAt: Date;
@@ -88,8 +70,7 @@ export interface StaffMember {
   email: string;
   firstName: string;
   lastName: string;
-  role: 'admin' | 'teacher' | 'office_admin';
-  adminRole?: AdminRole;
+  role: 'admin' | 'teacher' | 'manager';
   status: 'active' | 'inactive' | 'pending';
   invitedBy?: string;
   invitedAt?: Date;
@@ -265,8 +246,8 @@ export interface AttendanceRecord {
 
 export interface FacilityCheckIn {
   id: string;
-  personId: string; // Can be student, teacher, or staff
-  personType: 'student' | 'teacher' | 'staff' | 'parent' | 'visitor';
+  personId: string; // Can be student, teacher, admin, manager, parent, or adult
+  personType: 'student' | 'parent' | 'adult' | 'teacher' | 'admin' | 'manager' | 'visitor';
   campusId: string;
   roomId?: string;
   checkInTime: Date;

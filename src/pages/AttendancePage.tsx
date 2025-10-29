@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import type { UserProfile } from '../types';
 import AttendanceView from '../features/attendance/AttendanceView';
-import { mockTeacherProfile, mockAdultProfile } from '../lib/mockData';
+// Mock data removed - use real API data
 
 export default function AttendancePage() {
   // For demo purposes, use a teacher profile
   const [currentProfile] = useState<UserProfile>(
-    mockTeacherProfile || mockAdultProfile
+    { type: 'teacher', id: '', firstName: '', lastName: '' } // TODO: Use real profile
   );
 
   return <AttendanceView currentProfile={currentProfile} />;

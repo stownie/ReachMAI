@@ -12,20 +12,28 @@ import {
   BarChart3,
   Download
 } from 'lucide-react';
-import { 
-  mockFinancialMetrics, 
-  mockPaymentAnalytics, 
-  mockBudgetForecast 
-} from '../../lib/mockAnalyticsData';
+// Mock data removed - use real API data
 import type { FinancialMetrics, PaymentAnalytics, BudgetForecast } from '../../types';
 
 export default function FinancialAnalyticsDashboard() {
   const [selectedPeriod, setSelectedPeriod] = useState('monthly');
   const [selectedView, setSelectedView] = useState<'overview' | 'payments' | 'budget'>('overview');
 
-  const financialMetrics: FinancialMetrics = mockFinancialMetrics;
-  const paymentAnalytics: PaymentAnalytics = mockPaymentAnalytics;
-  const budgetForecast: BudgetForecast = mockBudgetForecast;
+  // TODO: Replace with real API calls
+  const financialMetrics: FinancialMetrics | null = null;
+  const paymentAnalytics: PaymentAnalytics | null = null;
+  const budgetForecast: BudgetForecast | null = null;
+
+  if (!financialMetrics || !paymentAnalytics || !budgetForecast) {
+    return (
+      <div className="p-6">
+        <div className="text-center py-12">
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Financial Analytics</h2>
+          <p className="text-gray-500">No data available. Connect to real API to view financial analytics.</p>
+        </div>
+      </div>
+    );
+  }
 
   const profitMargin = ((financialMetrics.netProfit / financialMetrics.totalRevenue) * 100);
   const growthRate = 8.5; // Mock growth rate

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { DollarSign, Clock, Users, FileText, Download, Search, CheckCircle, AlertCircle } from 'lucide-react';
 import { formatCurrency, formatHours, getPayrollStatusColor } from '../../lib/payroll';
-import { getMockTeacherPayrolls, getMockPayrollPeriods, getMockPayrollStats } from '../../lib/mockPayrollData';
+// Mock data removed - use real API data
 
 interface PayrollViewProps {
   userProfile: any;
@@ -12,8 +12,9 @@ export default function PayrollView({ }: PayrollViewProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
-  const periods = getMockPayrollPeriods();
-  const allPayrolls = getMockTeacherPayrolls();
+  // TODO: Replace with real API calls
+  const periods: any[] = [];
+  const allPayrolls: any[] = [];
   const filteredPayrolls = allPayrolls.filter(payroll => {
     const matchesPeriod = selectedPeriod === 'all' || payroll.periodId === selectedPeriod;
     const matchesSearch = searchTerm === '' || 
@@ -23,7 +24,8 @@ export default function PayrollView({ }: PayrollViewProps) {
     return matchesPeriod && matchesSearch && matchesStatus;
   });
 
-  const stats = getMockPayrollStats();
+  // TODO: Replace with real API call
+  const stats = null;
   const currentPeriod = periods.find(p => p.id === selectedPeriod);
 
   const handleApprovePayroll = (payrollId: string) => {

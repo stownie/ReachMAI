@@ -30,7 +30,8 @@ export default function MobileCheckInSystem({
   const [location, setLocation] = useState<DeviceLocation | null>(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [currentCheckIn, setCurrentCheckIn] = useState<MobileCheckIn | null>(null);
-  const [availableLocations] = useState<CheckInLocation[]>(getMockCheckInLocations());
+  // TODO: Replace with real API call
+  const [availableLocations] = useState<CheckInLocation[]>([]);
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -358,7 +359,7 @@ export default function MobileCheckInSystem({
   );
 }
 
-// Mock data for check-in locations
+// Mock data removed - use real API data
 function getMockCheckInLocations(): CheckInLocation[] {
   return [
     {

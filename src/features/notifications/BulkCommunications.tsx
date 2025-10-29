@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { Send, Calendar, Filter, Eye, Edit, Trash2, Plus, Mail, MessageSquare, AlertTriangle, FileText, Download } from 'lucide-react';
 import { getRelativeTime } from '../../lib/notifications';
-import { mockCampaigns } from '../../lib/mockNotificationData';
+// Mock data removed - use real API data
 import type { Campaign, AudienceFilter, NotificationChannel, UserProfileType } from '../../types';
 
 export default function BulkCommunications() {
   const [activeTab, setActiveTab] = useState<'campaigns' | 'create' | 'templates'>('campaigns');
   const [selectedCampaign, setSelectedCampaign] = useState<string | null>(null);
-  const [campaigns] = useState<Campaign[]>(mockCampaigns);
+  const [campaigns] = useState<Campaign[]>([]);
 
   const handleCreateCampaign = (campaignData: Partial<Campaign>) => {
     console.log('Creating campaign:', campaignData);
@@ -533,7 +533,7 @@ function AudienceSelectionStep({
   data: Partial<Campaign>;
   onChange: (data: Partial<Campaign>) => void;
 }) {
-  const userTypes: UserProfileType[] = ['student', 'parent', 'teacher', 'adult'];
+  const userTypes: UserProfileType[] = ['student', 'parent', 'adult', 'teacher', 'admin', 'manager'];
 
   return (
     <div className="space-y-6">
@@ -843,12 +843,14 @@ function CampaignDetailModal({
 function calculateEstimatedRecipients(audienceFilter?: AudienceFilter): number {
   if (!audienceFilter?.userTypes) return 0;
   
-  // Mock calculation based on user types
-  const estimates = {
-    student: 120,
-    parent: 85,
-    teacher: 15,
-    adult: 30
+  // Mock calculation based on user types - replace with real API call
+  const estimates: Record<UserProfileType, number> = {
+    student: 0,
+    parent: 0,
+    adult: 0, 
+    teacher: 0,
+    admin: 0,
+    manager: 0
   };
   
   return audienceFilter.userTypes.reduce((total, type) => {

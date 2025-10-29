@@ -45,8 +45,7 @@ const StaffManagementPage: React.FC<StaffManagementPageProps> = ({ currentProfil
     email: string;
     firstName: string;
     lastName: string;
-    role: 'admin' | 'teacher' | 'office_admin';
-    adminRole?: string;
+    role: 'admin' | 'teacher' | 'manager';
   }) => {
     console.log('handleInviteStaff called with:', inviteData);
     
@@ -75,8 +74,7 @@ const StaffManagementPage: React.FC<StaffManagementPageProps> = ({ currentProfil
     firstName: string;
     lastName: string;
     email: string;
-    role: 'admin' | 'teacher' | 'office_admin';
-    adminRole?: string;
+    role: 'admin' | 'teacher' | 'manager';
     status?: 'active' | 'inactive';
   }) => {
     if (!editingStaff) return;
@@ -87,7 +85,6 @@ const StaffManagementPage: React.FC<StaffManagementPageProps> = ({ currentProfil
         firstName: updateData.firstName,
         lastName: updateData.lastName,
         role: updateData.role,
-        adminRole: updateData.adminRole,
         status: updateData.status || 'active'
       };
       
@@ -141,20 +138,8 @@ const StaffManagementPage: React.FC<StaffManagementPageProps> = ({ currentProfil
     }
   };
 
-  const getRoleDisplayName = (role: string, adminRole?: string) => {
-    if (role === 'admin') {
-      switch (adminRole) {
-        case 'system_owner':
-          return 'System Owner';
-        case 'super_admin':
-          return 'Super Admin';
-        case 'office_admin':
-          return 'Office Admin';
-        default:
-          return 'Admin';
-      }
-    }
-    return role === 'office_admin' ? 'Office Admin' : role.charAt(0).toUpperCase() + role.slice(1);
+  const getRoleDisplayName = (role: string) => {
+    return role === 'manager' ? 'Manager' : role.charAt(0).toUpperCase() + role.slice(1);
   };
 
   const getRoleIcon = (role: string) => {
@@ -163,7 +148,7 @@ const StaffManagementPage: React.FC<StaffManagementPageProps> = ({ currentProfil
         return Shield;
       case 'teacher':
         return User;
-      case 'office_admin':
+      case 'manager':
         return User;
       default:
         return User;
@@ -572,8 +557,7 @@ interface InviteStaffModalProps {
     email: string;
     firstName: string;
     lastName: string;
-    role: 'admin' | 'teacher' | 'office_admin';
-    adminRole?: string;
+    role: 'admin' | 'teacher' | 'manager';
   }) => Promise<void>;
 }
 
@@ -582,8 +566,7 @@ const InviteStaffModal: React.FC<InviteStaffModalProps> = ({ onClose, onInvite }
     email: '',
     firstName: '',
     lastName: '',
-    role: 'teacher' as 'admin' | 'teacher' | 'office_admin',
-    adminRole: ''
+    role: 'teacher' as 'admin' | 'teacher' | 'manager'
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -656,33 +639,15 @@ const InviteStaffModal: React.FC<InviteStaffModalProps> = ({ onClose, onInvite }
               value={formData.role}
               onChange={(e) => setFormData(prev => ({ 
                 ...prev, 
-                role: e.target.value as 'admin' | 'teacher' | 'office_admin',
-                adminRole: e.target.value !== 'admin' ? '' : prev.adminRole
+                role: e.target.value as 'admin' | 'teacher' | 'manager'
               }))}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
             >
               <option value="teacher">Teacher</option>
-              <option value="office_admin">Office Admin</option>
+              <option value="manager">Manager</option>
               <option value="admin">Admin</option>
             </select>
           </div>
-
-          {formData.role === 'admin' && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Admin Role
-              </label>
-              <select
-                value={formData.adminRole}
-                onChange={(e) => setFormData(prev => ({ ...prev, adminRole: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-              >
-                <option value="">Select Admin Role</option>
-                <option value="super_admin">Super Admin</option>
-                <option value="office_admin">Office Admin</option>
-              </select>
-            </div>
-          )}
 
           <div className="flex justify-end space-x-3 pt-4">
             <button
@@ -717,8 +682,7 @@ interface EditStaffModalProps {
     firstName: string;
     lastName: string;
     email: string;
-    role: 'admin' | 'teacher' | 'office_admin';
-    adminRole?: string;
+    role: 'admin' | 'teacher' | 'manager';
     status?: 'active' | 'inactive';
   }) => void;
 }
@@ -729,7 +693,6 @@ const EditStaffModal: React.FC<EditStaffModalProps> = ({ staff, onClose, onUpdat
     lastName: staff.lastName,
     email: staff.email,
     role: staff.role,
-    adminRole: staff.adminRole?.name.toLowerCase().replace(' ', '_') || '',
     status: staff.status as 'active' | 'inactive'
   });
 
@@ -793,33 +756,15 @@ const EditStaffModal: React.FC<EditStaffModalProps> = ({ staff, onClose, onUpdat
               value={formData.role}
               onChange={(e) => setFormData(prev => ({ 
                 ...prev, 
-                role: e.target.value as 'admin' | 'teacher' | 'office_admin',
-                adminRole: e.target.value !== 'admin' ? '' : prev.adminRole
+                role: e.target.value as 'admin' | 'teacher' | 'manager'
               }))}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
             >
               <option value="teacher">Teacher</option>
-              <option value="office_admin">Office Admin</option>
+              <option value="manager">Manager</option>
               <option value="admin">Admin</option>
             </select>
           </div>
-
-          {formData.role === 'admin' && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Admin Role
-              </label>
-              <select
-                value={formData.adminRole}
-                onChange={(e) => setFormData(prev => ({ ...prev, adminRole: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-              >
-                <option value="">Select Admin Role</option>
-                <option value="super_admin">Super Admin</option>
-                <option value="office_admin">Office Admin</option>
-              </select>
-            </div>
-          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
