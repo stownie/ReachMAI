@@ -54,7 +54,7 @@ function AppContent() {
     return (
       <div className="min-h-screen bg-accent flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-amber-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading...</p>
         </div>
       </div>
@@ -301,7 +301,7 @@ function AppContent() {
                                 <IconComponent className="h-6 w-6" />
                               </div>
                             </div>
-                            <h3 className="text-lg font-semibold text-gray-900 mb-2 group-hover:text-primary transition-colors">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-2 group-hover:text-amber-700 transition-colors">
                               {card.title}
                             </h3>
                             <p className="text-gray-600 text-sm">
@@ -364,7 +364,7 @@ function AppContent() {
                 <div className="text-center mb-12">
                   <button
                     onClick={handleShowAuth}
-                    className="bg-primary text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-primary/90 transition-all duration-300 shadow-brand hover:shadow-brand-lg transform hover:-translate-y-0.5"
+                    className="bg-amber-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-amber-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
                   >
                     Get Started Today
                   </button>
@@ -372,7 +372,7 @@ function AppContent() {
                     Already have an account?{' '}
                     <button
                       onClick={handleShowAuth}
-                      className="text-primary hover:text-primary/80 font-medium underline"
+                      className="text-amber-700 hover:text-amber-800 font-medium underline"
                     >
                       Sign in here
                     </button>
@@ -420,7 +420,7 @@ function AppContent() {
     return (
       <div className="min-h-screen bg-accent flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading...</p>
         </div>
       </div>

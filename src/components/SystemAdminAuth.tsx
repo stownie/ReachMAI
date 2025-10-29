@@ -63,8 +63,8 @@ export default function SystemAdminAuth({ onAuthenticated }: SystemAdminAuthProp
         <div className="bg-white rounded-lg shadow-xl p-8">
           {/* Header */}
           <div className="text-center mb-8">
-            <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
-              <Lock className="h-8 w-8 text-red-600" />
+            <div className="mx-auto w-16 h-16 bg-secondary-100 rounded-full flex items-center justify-center mb-4">
+              <Lock className="h-8 w-8 text-secondary-600" />
             </div>
             <h1 className="text-2xl font-bold text-gray-900">System Administrator</h1>
             <p className="text-gray-600 mt-2">
@@ -74,8 +74,8 @@ export default function SystemAdminAuth({ onAuthenticated }: SystemAdminAuthProp
 
           {/* Error Message */}
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">
-              <p className="text-sm text-red-600">{error}</p>
+            <div className="mb-6 p-4 bg-secondary-50 border border-secondary-200 rounded-md">
+              <p className="text-sm text-secondary-700">{error}</p>
             </div>
           )}
 
@@ -90,7 +90,7 @@ export default function SystemAdminAuth({ onAuthenticated }: SystemAdminAuthProp
                 type="text"
                 value={credentials.username}
                 onChange={handleInputChange('username')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-secondary-500 focus:border-transparent"
                 placeholder="Enter system admin username"
                 required
                 autoComplete="username"
@@ -107,7 +107,7 @@ export default function SystemAdminAuth({ onAuthenticated }: SystemAdminAuthProp
                   type={showPassword ? 'text' : 'password'}
                   value={credentials.password}
                   onChange={handleInputChange('password')}
-                  className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-secondary-500 focus:border-transparent"
                   placeholder="Enter system admin password"
                   required
                   autoComplete="current-password"
@@ -129,7 +129,7 @@ export default function SystemAdminAuth({ onAuthenticated }: SystemAdminAuthProp
             <button
               type="submit"
               disabled={isLoading || !credentials.username || !credentials.password}
-              className="w-full bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="w-full bg-secondary-600 text-white py-2 px-4 rounded-md hover:bg-secondary-700 focus:outline-none focus:ring-2 focus:ring-secondary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {isLoading ? (
                 <div className="flex items-center justify-center">

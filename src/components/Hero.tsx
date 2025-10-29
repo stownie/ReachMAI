@@ -46,7 +46,7 @@ const Hero: React.FC<HeroProps> = ({ currentProfile, onShowAuth }) => {
   };
 
   return (
-    <section className="bg-gradient-to-r from-secondary-700 via-primary-500 to-primary-600 text-white py-16 shadow-brand-lg">
+    <section className="hero-gradient text-white py-16 shadow-brand-lg">
       <div className="container mx-auto px-4 text-center">
         <h2 className="text-4xl font-bold mb-4 font-brand">{getWelcomeMessage()}</h2>
         <p className="text-lg mb-8 max-w-2xl mx-auto opacity-90">
@@ -55,7 +55,7 @@ const Hero: React.FC<HeroProps> = ({ currentProfile, onShowAuth }) => {
         {!currentProfile && (
           <button 
             onClick={onShowAuth}
-            className="bg-white text-primary-600 px-8 py-3 rounded-lg font-semibold hover:bg-primary-50 transition-all duration-200 shadow-brand hover:shadow-brand-lg transform hover:-translate-y-0.5"
+            className="hero-button px-8 py-3 rounded-lg font-semibold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
           >
             Sign In
           </button>

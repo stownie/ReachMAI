@@ -107,10 +107,12 @@ const Header: React.FC<HeaderProps> = ({
 
   const getProfileColor = (type: string) => {
     const colors = {
-      student: 'bg-primary-500',  // Gold
-      parent: 'bg-accent-500',    // Cream
-      teacher: 'bg-secondary-500', // Maroon
-      adult: 'bg-primary-600',    // Darker Gold
+      student: 'bg-primary-400',    // Bright Gold
+      parent: 'bg-accent-200',      // Light Cream
+      teacher: 'bg-secondary-600',  // Maroon
+      adult: 'bg-primary-600',      // Rich Gold
+      admin: 'bg-secondary-800',    // Deep Maroon
+      manager: 'bg-primary-700',    // Dark Gold
     };
     return colors[type as keyof typeof colors] || 'bg-neutral-500';
   };
@@ -118,7 +120,7 @@ const Header: React.FC<HeaderProps> = ({
   const navItems = getNavItems();
 
   return (
-    <header className="bg-white shadow-brand border-b border-primary-100">
+    <header className="bg-white shadow-brand border-b border-primary-200">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
@@ -135,7 +137,7 @@ const Header: React.FC<HeaderProps> = ({
               }}
             />
             <h1 
-              className="text-2xl font-bold text-primary-600 font-brand"
+              className="text-2xl font-bold text-primary-700 font-brand"
               style={{ display: 'none' }}
             >
               ReachMAI
@@ -148,7 +150,7 @@ const Header: React.FC<HeaderProps> = ({
               <button
                 key={item.href}
                 onClick={() => onNavigate?.(item.href)}
-                className="text-neutral-600 hover:text-primary-600 px-3 py-2 text-sm font-medium transition-all duration-200 hover:bg-primary-50 rounded-lg"
+                className="text-neutral-700 hover:text-primary-700 px-3 py-2 text-sm font-medium transition-all duration-200 hover:bg-primary-50 rounded-lg"
               >
                 {item.label}
               </button>

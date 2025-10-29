@@ -50,26 +50,26 @@ export default function SystemAdminPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* System Admin Header */}
-      <div className="bg-red-600 text-white px-4 py-3 border-b border-red-700">
+      <div className="bg-secondary-800 text-white px-4 py-3 border-b border-secondary-900">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <Shield className="h-6 w-6" />
             <div>
               <h1 className="text-lg font-semibold">System Administrator Mode</h1>
-              <p className="text-sm text-red-100">Full system access and control</p>
+              <p className="text-sm text-secondary-100">Full system access and control</p>
             </div>
           </div>
           
           <div className="flex items-center space-x-4">
             <button
               onClick={() => navigate('/')}
-              className="text-red-100 hover:text-white transition-colors text-sm"
+              className="text-secondary-100 hover:text-white transition-colors text-sm"
             >
               Return to Main Site
             </button>
             <button
               onClick={handleLogout}
-              className="flex items-center space-x-2 bg-red-700 hover:bg-red-800 px-3 py-2 rounded-md transition-colors text-sm"
+              className="flex items-center space-x-2 bg-secondary-700 hover:bg-secondary-900 px-3 py-2 rounded-md transition-colors text-sm"
             >
               <LogOut className="h-4 w-4" />
               <span>Logout</span>
