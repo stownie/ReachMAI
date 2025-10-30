@@ -744,10 +744,10 @@ router.post('/staff/invite', authenticateToken, async (req, res) => {
     // Create invitation
     const invitationResult = await query(
       `INSERT INTO staff_invitations 
-       (email, first_name, last_name, role, admin_role, status, invited_by, invited_at, expires_at, token)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW() + INTERVAL '7 days', $8)
+       (email, first_name, last_name, role, status, invited_by, invited_at, expires_at, token)
+       VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW() + INTERVAL '7 days', $7)
        RETURNING *`,
-      [email, firstName, lastName, role, adminRole, 'pending', inviterProfile.id, invitationToken]
+      [email, firstName, lastName, role, 'pending', inviterProfile.id, invitationToken]
     );
 
     const invitation = invitationResult.rows[0];
