@@ -67,6 +67,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initializeAuth();
   }, []);
 
+  // Listen for token expiration events
+  useEffect(() => {
+    const handleTokenExpired = () => {
+      console.log('🔓 Token expired event received, logging out');
+      setAccount(null);
+      setCurrentProfile(null);
+      setError('Your session has expired. Please log in again.');
+    };
+
+    window.addEventListener('auth-token-expired', handleTokenExpired);
+    return () => window.removeEventListener('auth-token-expired', handleTokenExpired);
+  }, []);
+
   const login = async (email: string, password: string) => {
     try {
       setIsLoading(true);

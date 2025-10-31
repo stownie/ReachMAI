@@ -45,6 +45,12 @@ class ApiClient {
       const response = await fetch(url, config);
       
       if (!response.ok) {
+        // Handle token expiration/invalid token
+        if (response.status === 401 || response.status === 403) {
+          console.log('🔓 Token expired or invalid, clearing authentication');
+          this.clearToken();
+        }
+        
         const error = await response.json().catch(() => ({ error: 'Request failed' }));
         throw new Error(error.error || `HTTP ${response.status}`);
       }
@@ -104,6 +110,16 @@ class ApiClient {
     this.token = null;
     if (typeof window !== 'undefined') {
       localStorage.removeItem('reachmai_token');
+    }
+  }
+
+  clearToken(): void {
+    console.log('🔓 Clearing expired token');
+    this.token = null;
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('reachmai_token');
+      // Dispatch a custom event to notify components of token expiration
+      window.dispatchEvent(new CustomEvent('auth-token-expired'));
     }
   }
 
