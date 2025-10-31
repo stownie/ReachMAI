@@ -680,6 +680,99 @@ router.get('/notifications', authenticateToken, async (req, res) => {
   }
 });
 
+// User Management endpoints
+// Get all users with their profiles
+router.get('/users', authenticateFlexible, async (req, res) => {
+  try {
+    // User is authenticated, no additional permission check needed
+
+    const usersQuery = `
+      SELECT 
+        aa.id as account_id,
+        aa.email as account_email,
+        aa.phone as account_phone,
+        aa.email_verified,
+        aa.phone_verified,
+        aa.created_at as account_created,
+        aa.updated_at as account_updated,
+        up.id as profile_id,
+        up.profile_type,
+        up.first_name,
+        up.last_name,
+        up.preferred_name,
+        up.email as profile_email,
+        up.phone as profile_phone,
+        up.preferred_contact_method,
+        up.date_of_birth,
+        up.school,
+        up.school_catalog,
+        up.is_active,
+        up.created_at as profile_created,
+        up.updated_at as profile_updated
+      FROM auth_accounts aa
+      LEFT JOIN user_profiles up ON aa.id = up.account_id
+      WHERE up.is_active = true OR up.is_active IS NULL
+      ORDER BY aa.created_at DESC, up.created_at DESC
+    `;
+
+    const result = await query(usersQuery);
+    
+    // Group profiles by account
+    const accountsMap = new Map();
+    
+    result.rows.forEach(row => {
+      const accountId = row.account_id;
+      
+      if (!accountsMap.has(accountId)) {
+        accountsMap.set(accountId, {
+          id: accountId,
+          email: row.account_email,
+          phone: row.account_phone,
+          emailVerified: row.email_verified,
+          phoneVerified: row.phone_verified,
+          createdAt: row.account_created,
+          updatedAt: row.account_updated,
+          profiles: []
+        });
+      }
+      
+      // Add profile if it exists
+      if (row.profile_id) {
+        accountsMap.get(accountId).profiles.push({
+          id: row.profile_id,
+          type: row.profile_type,
+          firstName: row.first_name,
+          lastName: row.last_name,
+          preferredName: row.preferred_name,
+          email: row.profile_email,
+          phone: row.profile_phone,
+          preferredContactMethod: row.preferred_contact_method,
+          dateOfBirth: row.date_of_birth,
+          school: row.school,
+          schoolCatalog: row.school_catalog,
+          isActive: row.is_active,
+          accountId: accountId,
+          createdAt: row.profile_created,
+          updatedAt: row.profile_updated,
+          emailVerified: row.email_verified,
+          phoneVerified: row.phone_verified
+        });
+      }
+    });
+
+    // Convert map to array and add primary profile
+    const users = Array.from(accountsMap.values()).map(account => ({
+      ...account,
+      primaryProfile: account.profiles.length > 0 ? account.profiles[0] : null
+    }));
+
+    res.json(users);
+  } catch (error) {
+    console.error('Get users error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Staff Management endpoints
 // Get all staff members
 router.get('/staff', authenticateFlexible, async (req, res) => {

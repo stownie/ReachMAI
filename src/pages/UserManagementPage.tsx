@@ -35,7 +35,7 @@ interface UserWithAccount {
   profiles: UserProfile[];
   createdAt: Date;
   updatedAt: Date;
-  primaryProfile: UserProfile;
+  primaryProfile: UserProfile | null;
 }
 
 const UserManagementPage: React.FC<UserManagementPageProps> = ({ currentProfile }) => {
@@ -72,11 +72,37 @@ const UserManagementPage: React.FC<UserManagementPageProps> = ({ currentProfile 
   const loadUsers = async () => {
     try {
       setLoading(true);
-      // TODO: Replace with actual API call once users endpoint is available
-      // const userData = await apiClient.getAllUsers();
       
-      // Mock data for now - replace with real API call
-      const mockUsers: UserWithAccount[] = [
+      // Load real user data from API
+      const userData = await apiClient.getAllUsers();
+      
+      // Transform API data to match component interface
+      const transformedUsers: UserWithAccount[] = userData.map(user => ({
+        ...user,
+        createdAt: new Date(user.createdAt),
+        updatedAt: new Date(user.updatedAt),
+        profiles: user.profiles.map((profile: any) => ({
+          ...profile,
+          createdAt: new Date(profile.createdAt),
+          updatedAt: new Date(profile.updatedAt)
+        })),
+        primaryProfile: user.primaryProfile ? {
+          ...user.primaryProfile,
+          createdAt: new Date(user.primaryProfile.createdAt),
+          updatedAt: new Date(user.primaryProfile.updatedAt)
+        } : null
+      }));
+      
+      setUsers(transformedUsers);
+      
+    } catch (error) {
+      console.error('Failed to load users:', error);
+      // Fallback to empty array on error
+      setUsers([]);
+    } finally {
+      setLoading(false);
+    }
+  };
         {
           id: '1',
           email: 'john.student@email.com',
@@ -198,17 +224,23 @@ const UserManagementPage: React.FC<UserManagementPageProps> = ({ currentProfile 
     // Filter by search term
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(user => 
-        user.primaryProfile.firstName.toLowerCase().includes(term) ||
-        user.primaryProfile.lastName.toLowerCase().includes(term) ||
-        user.email.toLowerCase().includes(term) ||
-        (user.primaryProfile.preferredName && user.primaryProfile.preferredName.toLowerCase().includes(term))
-      );
+      filtered = filtered.filter(user => {
+        if (!user.primaryProfile) return user.email.toLowerCase().includes(term);
+        
+        return (
+          user.primaryProfile.firstName.toLowerCase().includes(term) ||
+          user.primaryProfile.lastName.toLowerCase().includes(term) ||
+          user.email.toLowerCase().includes(term) ||
+          (user.primaryProfile.preferredName && user.primaryProfile.preferredName.toLowerCase().includes(term))
+        );
+      });
     }
 
     // Filter by user type
     if (selectedUserType !== 'all') {
-      filtered = filtered.filter(user => user.primaryProfile.type === selectedUserType);
+      filtered = filtered.filter(user => 
+        user.primaryProfile && user.primaryProfile.type === selectedUserType
+      );
     }
 
     setFilteredUsers(filtered);
@@ -218,7 +250,9 @@ const UserManagementPage: React.FC<UserManagementPageProps> = ({ currentProfile 
       if (filter.value === 'all') {
         filter.count = users.length;
       } else {
-        filter.count = users.filter(user => user.primaryProfile.type === filter.value).length;
+        filter.count = users.filter(user => 
+          user.primaryProfile && user.primaryProfile.type === filter.value
+        ).length;
       }
     });
   };
@@ -437,6 +471,7 @@ const UserManagementPage: React.FC<UserManagementPageProps> = ({ currentProfile 
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredUsers.map((user) => {
                   const profile = user.primaryProfile;
+                  if (!profile) return null; // Skip accounts without profiles
                   const TypeIcon = getTypeIcon(profile.type);
                   
                   return (
@@ -595,7 +630,7 @@ const UserManagementPage: React.FC<UserManagementPageProps> = ({ currentProfile 
       )}
 
       {/* TODO: Edit User Modal */}
-      {showEditModal && editingUser && (
+      {showEditModal && editingUser && editingUser.primaryProfile && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h3 className="text-lg font-medium text-gray-900 mb-4">
