@@ -157,7 +157,7 @@ const OrganizationManagementPage: React.FC = () => {
         phone: fullOrg.phone || '',
         email: fullOrg.email || '',
         website: fullOrg.website || '',
-        clearanceRequirements: fullOrg.clearanceRequirements || []
+        requiresClearance: fullOrg.requires_clearance || false
       });
       setEditingOrganization(fullOrg);
       setShowEditModal(true);

@@ -1541,10 +1541,9 @@ router.get('/organizations', authenticateFlexible, async (req, res) => {
       SELECT 
         o.*,
         COUNT(DISTINCT p.id) as programs_count,
-        COUNT(DISTINCT toc.id) as teachers_with_clearance
+        0 as teachers_with_clearance
       FROM organizations o
       LEFT JOIN programs p ON o.id = p.organization_id AND p.is_active = true
-      LEFT JOIN teacher_organization_clearances toc ON o.id = toc.organization_id AND toc.clearance_status = 'cleared'
       WHERE o.is_active = true
       GROUP BY o.id
       ORDER BY o.name
@@ -1558,7 +1557,7 @@ router.get('/organizations', authenticateFlexible, async (req, res) => {
   }
 });
 
-// Get organization by ID with clearance requirements
+// Get organization by ID
 router.get('/organizations/:id', authenticateFlexible, async (req, res) => {
   try {
     const { id } = req.params;
@@ -1571,26 +1570,7 @@ router.get('/organizations/:id', authenticateFlexible, async (req, res) => {
       return res.status(404).json({ error: 'Organization not found' });
     }
 
-    // Get clearance requirements for this organization
-    const clearanceQuery = `
-      SELECT 
-        ocr.*,
-        ct.name as clearance_name,
-        ct.description as clearance_description,
-        ct.category,
-        ct.expires,
-        ct.default_validity_months
-      FROM organization_clearance_requirements ocr
-      JOIN clearance_types ct ON ocr.clearance_type_id = ct.id
-      WHERE ocr.organization_id = $1
-      ORDER BY ct.category, ct.name
-    `;
-    const clearanceResult = await query(clearanceQuery, [id]);
-
-    res.json({
-      ...orgResult.rows[0],
-      clearanceRequirements: clearanceResult.rows
-    });
+    res.json(orgResult.rows[0]);
   } catch (error) {
     console.error('Get organization error:', error);
     res.status(500).json({ error: 'Internal server error' });
