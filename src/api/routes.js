@@ -1825,8 +1825,7 @@ router.get('/campuses', authenticateFlexible, async (req, res) => {
     const campusesQuery = `
       SELECT 
         c.*,
-        o.name as organization_name,
-        o.type as organization_type
+        o.name as organization_name
       FROM campuses c
       JOIN organizations o ON c.organization_id = o.id
       WHERE c.is_active = true
