@@ -841,10 +841,38 @@ router.post('/users', authenticateFlexible, async (req, res) => {
     const profileId = profileResult.rows[0].id;
     console.log('Created user profile:', profileId);
 
-    // TODO: If sendInvitation is true, send invitation email
+    // Send invitation email if requested
     if (sendInvitation) {
-      console.log('TODO: Send invitation email to:', email);
-      // This would integrate with the email service to send a setup invitation
+      try {
+        // Generate invitation token
+        const invitationToken = jwt.sign(
+          { 
+            accountId, 
+            profileId, 
+            email, 
+            type: 'user_setup',
+            profileType: profile.type 
+          },
+          process.env.JWT_SECRET || 'fallback-secret',
+          { expiresIn: '7d' }
+        );
+
+        // Send invitation email
+        console.log('📧 Sending invitation email to:', email);
+        const invitationResult = await emailService.sendUserInvitation({
+          email,
+          firstName: profile.firstName,
+          lastName: profile.lastName,
+          profileType: profile.type,
+          token: invitationToken,
+          invitedBy: 'System Administrator' // Could be dynamic based on current user
+        });
+
+        console.log('✅ Invitation email sent:', invitationResult.success);
+      } catch (emailError) {
+        console.error('❌ Failed to send invitation email:', emailError);
+        // Don't fail the user creation if email fails
+      }
     }
 
     // Return the created user data
