@@ -1035,7 +1035,7 @@ router.post('/staff/accept-invitation', async (req, res) => {
     // Create auth account
     const hashedPassword = await bcrypt.hash(password, 10);
     const accountResult = await query(
-      'INSERT INTO auth_accounts (email, password_hash, is_verified, created_at) VALUES ($1, $2, true, NOW()) RETURNING *',
+      'INSERT INTO auth_accounts (email, password_hash, email_verified, created_at) VALUES ($1, $2, true, NOW()) RETURNING *',
       [invitation.email, hashedPassword]
     );
 
@@ -1076,7 +1076,7 @@ router.post('/staff/accept-invitation', async (req, res) => {
       account: {
         id: account.id,
         email: account.email,
-        isVerified: account.is_verified
+        isVerified: account.email_verified
       },
       profile: profileResult.rows[0]
     });
