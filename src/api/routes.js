@@ -1532,4 +1532,494 @@ router.post('/staff/accept-invitation', async (req, res) => {
   }
 });
 
+// ==================== ORGANIZATION & CLEARANCE MANAGEMENT ====================
+
+// Get all organizations
+router.get('/organizations', authenticateFlexible, async (req, res) => {
+  try {
+    const organizationsQuery = `
+      SELECT 
+        o.*,
+        COUNT(DISTINCT ocr.id) as required_clearances_count,
+        COUNT(DISTINCT p.id) as programs_count
+      FROM organizations o
+      LEFT JOIN organization_clearance_requirements ocr ON o.id = ocr.organization_id
+      LEFT JOIN programs p ON o.id = p.organization_id AND p.is_active = true
+      WHERE o.is_active = true
+      GROUP BY o.id
+      ORDER BY o.name
+    `;
+
+    const result = await query(organizationsQuery);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Get organizations error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get organization by ID with clearance requirements
+router.get('/organizations/:id', authenticateFlexible, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Get organization details
+    const orgQuery = `SELECT * FROM organizations WHERE id = $1 AND is_active = true`;
+    const orgResult = await query(orgQuery, [id]);
+
+    if (orgResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    // Get clearance requirements for this organization
+    const clearanceQuery = `
+      SELECT 
+        ocr.*,
+        ct.name as clearance_name,
+        ct.description as clearance_description,
+        ct.category,
+        ct.expires,
+        ct.default_validity_months
+      FROM organization_clearance_requirements ocr
+      JOIN clearance_types ct ON ocr.clearance_type_id = ct.id
+      WHERE ocr.organization_id = $1
+      ORDER BY ct.category, ct.name
+    `;
+    const clearanceResult = await query(clearanceQuery, [id]);
+
+    res.json({
+      ...orgResult.rows[0],
+      clearanceRequirements: clearanceResult.rows
+    });
+  } catch (error) {
+    console.error('Get organization error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Create new organization
+router.post('/organizations', authenticateFlexible, async (req, res) => {
+  try {
+    const { name, catalogCode, address, phone, email, website, clearanceRequirements } = req.body;
+
+    if (!name || !catalogCode) {
+      return res.status(400).json({ error: 'Name and catalog code are required' });
+    }
+
+    // Check if catalog code already exists
+    const existingOrg = await query(
+      'SELECT id FROM organizations WHERE catalog_code = $1',
+      [catalogCode]
+    );
+
+    if (existingOrg.rows.length > 0) {
+      return res.status(400).json({ error: 'Organization with this catalog code already exists' });
+    }
+
+    // Create organization
+    const orgResult = await query(
+      `INSERT INTO organizations (name, catalog_code, address, phone, email, website, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+       RETURNING *`,
+      [name, catalogCode, address, phone, email, website]
+    );
+
+    const organizationId = orgResult.rows[0].id;
+
+    // Add clearance requirements if provided
+    if (clearanceRequirements && clearanceRequirements.length > 0) {
+      for (const req of clearanceRequirements) {
+        await query(
+          `INSERT INTO organization_clearance_requirements 
+           (organization_id, clearance_type_id, is_required, custom_validity_months, notes)
+           VALUES ($1, $2, $3, $4, $5)`,
+          [organizationId, req.clearanceTypeId, req.isRequired || true, req.customValidityMonths, req.notes]
+        );
+      }
+    }
+
+    console.log('✅ Created organization:', name);
+    res.status(201).json(orgResult.rows[0]);
+  } catch (error) {
+    console.error('Create organization error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Update organization
+router.put('/organizations/:id', authenticateFlexible, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, catalogCode, address, phone, email, website, clearanceRequirements } = req.body;
+
+    // Update organization basic info
+    const updateResult = await query(
+      `UPDATE organizations 
+       SET name = $1, catalog_code = $2, address = $3, phone = $4, email = $5, website = $6, updated_at = NOW()
+       WHERE id = $7 AND is_active = true
+       RETURNING *`,
+      [name, catalogCode, address, phone, email, website, id]
+    );
+
+    if (updateResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    // Update clearance requirements if provided
+    if (clearanceRequirements !== undefined) {
+      // Remove existing requirements
+      await query('DELETE FROM organization_clearance_requirements WHERE organization_id = $1', [id]);
+
+      // Add new requirements
+      if (clearanceRequirements.length > 0) {
+        for (const req of clearanceRequirements) {
+          await query(
+            `INSERT INTO organization_clearance_requirements 
+             (organization_id, clearance_type_id, is_required, custom_validity_months, notes)
+             VALUES ($1, $2, $3, $4, $5)`,
+            [id, req.clearanceTypeId, req.isRequired || true, req.customValidityMonths, req.notes]
+          );
+        }
+      }
+    }
+
+    res.json(updateResult.rows[0]);
+  } catch (error) {
+    console.error('Update organization error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Delete organization (soft delete)
+router.delete('/organizations/:id', authenticateFlexible, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const result = await query(
+      'UPDATE organizations SET is_active = false, updated_at = NOW() WHERE id = $1 RETURNING *',
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    res.json({ message: 'Organization deleted successfully' });
+  } catch (error) {
+    console.error('Delete organization error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get all clearance types
+router.get('/clearance-types', authenticateFlexible, async (req, res) => {
+  try {
+    const result = await query(
+      'SELECT * FROM clearance_types ORDER BY category, name'
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Get clearance types error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Create new clearance type
+router.post('/clearance-types', authenticateFlexible, async (req, res) => {
+  try {
+    const { name, description, category, expires, defaultValidityMonths } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ error: 'Name is required' });
+    }
+
+    const result = await query(
+      `INSERT INTO clearance_types (name, description, category, expires, default_validity_months, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+       RETURNING *`,
+      [name, description, category, expires || true, defaultValidityMonths]
+    );
+
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Create clearance type error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get teacher clearances
+router.get('/teachers/:teacherId/clearances', authenticateFlexible, async (req, res) => {
+  try {
+    const { teacherId } = req.params;
+
+    const clearancesQuery = `
+      SELECT 
+        tc.*,
+        ct.name as clearance_name,
+        ct.description,
+        ct.category,
+        ct.expires,
+        ct.default_validity_months,
+        CASE 
+          WHEN tc.expiration_date IS NULL THEN 'permanent'
+          WHEN tc.expiration_date > CURRENT_DATE THEN 'valid'
+          ELSE 'expired'
+        END as validity_status
+      FROM teacher_clearances tc
+      JOIN clearance_types ct ON tc.clearance_type_id = ct.id
+      WHERE tc.teacher_id = $1
+      ORDER BY tc.status, tc.expiration_date DESC NULLS LAST, ct.name
+    `;
+
+    const result = await query(clearancesQuery, [teacherId]);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Get teacher clearances error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Add teacher clearance
+router.post('/teachers/:teacherId/clearances', authenticateFlexible, async (req, res) => {
+  try {
+    const { teacherId } = req.params;
+    const { 
+      clearanceTypeId, 
+      issuedDate, 
+      expirationDate, 
+      issuingAuthority, 
+      certificateNumber, 
+      notes,
+      documentUrl 
+    } = req.body;
+
+    if (!clearanceTypeId || !issuedDate) {
+      return res.status(400).json({ error: 'Clearance type and issued date are required' });
+    }
+
+    const result = await query(
+      `INSERT INTO teacher_clearances 
+       (teacher_id, clearance_type_id, issued_date, expiration_date, issuing_authority, 
+        certificate_number, notes, document_url, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
+       RETURNING *`,
+      [teacherId, clearanceTypeId, issuedDate, expirationDate, issuingAuthority, certificateNumber, notes, documentUrl]
+    );
+
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Add teacher clearance error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get teacher organization eligibility
+router.get('/teachers/eligibility', authenticateFlexible, async (req, res) => {
+  try {
+    const eligibilityQuery = `
+      SELECT * FROM teacher_organization_eligibility
+      ORDER BY teacher_id, organization_name
+    `;
+
+    const result = await query(eligibilityQuery);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Get teacher eligibility error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ==================== CAMPUS MANAGEMENT ====================
+
+// Get campuses for an organization
+router.get('/organizations/:organizationId/campuses', authenticateFlexible, async (req, res) => {
+  try {
+    const { organizationId } = req.params;
+
+    const campusesQuery = `
+      SELECT 
+        c.*,
+        o.name as organization_name
+      FROM campuses c
+      JOIN organizations o ON c.organization_id = o.id
+      WHERE c.organization_id = $1 AND c.is_active = true
+      ORDER BY c.is_primary DESC, c.name
+    `;
+
+    const result = await query(campusesQuery, [organizationId]);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Get organization campuses error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get all campuses (for admin overview)
+router.get('/campuses', authenticateFlexible, async (req, res) => {
+  try {
+    const campusesQuery = `
+      SELECT 
+        c.*,
+        o.name as organization_name,
+        o.type as organization_type
+      FROM campuses c
+      JOIN organizations o ON c.organization_id = o.id
+      WHERE c.is_active = true
+      ORDER BY o.name, c.is_primary DESC, c.name
+    `;
+
+    const result = await query(campusesQuery);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Get all campuses error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Create new campus
+router.post('/organizations/:organizationId/campuses', authenticateFlexible, async (req, res) => {
+  try {
+    const { organizationId } = req.params;
+    const {
+      name,
+      addressLine1,
+      addressLine2,
+      city,
+      state,
+      postalCode,
+      country,
+      phone,
+      email,
+      isPrimary
+    } = req.body;
+
+    if (!name || !addressLine1 || !city || !state) {
+      return res.status(400).json({ error: 'Missing required fields: name, addressLine1, city, state' });
+    }
+
+    // If this is being set as primary, unset other primary campuses
+    if (isPrimary) {
+      await query(
+        'UPDATE campuses SET is_primary = false WHERE organization_id = $1',
+        [organizationId]
+      );
+    }
+
+    const insertQuery = `
+      INSERT INTO campuses (
+        organization_id, name, address_line1, address_line2, city, state, 
+        postal_code, country, phone, email, is_primary
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      RETURNING *
+    `;
+
+    const result = await query(insertQuery, [
+      organizationId,
+      name,
+      addressLine1,
+      addressLine2 || null,
+      city,
+      state,
+      postalCode || null,
+      country || 'USA',
+      phone || null,
+      email || null,
+      isPrimary || false
+    ]);
+
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Create campus error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Update campus
+router.put('/campuses/:campusId', authenticateFlexible, async (req, res) => {
+  try {
+    const { campusId } = req.params;
+    const {
+      name,
+      addressLine1,
+      addressLine2,
+      city,
+      state,
+      postalCode,
+      country,
+      phone,
+      email,
+      isPrimary
+    } = req.body;
+
+    // Get the campus to find its organization
+    const campusResult = await query('SELECT organization_id FROM campuses WHERE id = $1', [campusId]);
+    if (campusResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Campus not found' });
+    }
+
+    const organizationId = campusResult.rows[0].organization_id;
+
+    // If this is being set as primary, unset other primary campuses
+    if (isPrimary) {
+      await query(
+        'UPDATE campuses SET is_primary = false WHERE organization_id = $1 AND id != $2',
+        [organizationId, campusId]
+      );
+    }
+
+    const updateQuery = `
+      UPDATE campuses 
+      SET name = $1, address_line1 = $2, address_line2 = $3, city = $4, state = $5,
+          postal_code = $6, country = $7, phone = $8, email = $9, is_primary = $10,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = $11
+      RETURNING *
+    `;
+
+    const result = await query(updateQuery, [
+      name,
+      addressLine1,
+      addressLine2,
+      city,
+      state,
+      postalCode,
+      country || 'USA',
+      phone,
+      email,
+      isPrimary || false,
+      campusId
+    ]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Campus not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Update campus error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Delete campus
+router.delete('/campuses/:campusId', authenticateFlexible, async (req, res) => {
+  try {
+    const { campusId } = req.params;
+
+    const result = await query(
+      'UPDATE campuses SET is_active = false, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *',
+      [campusId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Campus not found' });
+    }
+
+    res.json({ message: 'Campus deleted successfully' });
+  } catch (error) {
+    console.error('Delete campus error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 export default router;

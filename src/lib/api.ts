@@ -295,6 +295,131 @@ class ApiClient {
       body: JSON.stringify(setupData),
     });
   }
+
+  // ==================== ORGANIZATION & CAMPUS MANAGEMENT ====================
+
+  // Organizations
+  async getOrganizations(): Promise<any> {
+    return this.request('/organizations');
+  }
+
+  async createOrganization(orgData: {
+    name: string;
+    type: string;
+    description?: string;
+    website?: string;
+    phone?: string;
+    email?: string;
+  }): Promise<any> {
+    return this.request('/organizations', {
+      method: 'POST',
+      body: JSON.stringify(orgData),
+    });
+  }
+
+  async updateOrganization(id: string, orgData: any): Promise<any> {
+    return this.request(`/organizations/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(orgData),
+    });
+  }
+
+  async deleteOrganization(id: string): Promise<any> {
+    return this.request(`/organizations/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Campuses
+  async getOrganizationCampuses(organizationId: string): Promise<any> {
+    return this.request(`/organizations/${organizationId}/campuses`);
+  }
+
+  async getAllCampuses(): Promise<any> {
+    return this.request('/campuses');
+  }
+
+  async createCampus(organizationId: string, campusData: {
+    name: string;
+    addressLine1: string;
+    addressLine2?: string;
+    city: string;
+    state: string;
+    postalCode?: string;
+    country?: string;
+    phone?: string;
+    email?: string;
+    isPrimary?: boolean;
+  }): Promise<any> {
+    return this.request(`/organizations/${organizationId}/campuses`, {
+      method: 'POST',
+      body: JSON.stringify(campusData),
+    });
+  }
+
+  async updateCampus(campusId: string, campusData: any): Promise<any> {
+    return this.request(`/campuses/${campusId}`, {
+      method: 'PUT',
+      body: JSON.stringify(campusData),
+    });
+  }
+
+  async deleteCampus(campusId: string): Promise<any> {
+    return this.request(`/campuses/${campusId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Clearances
+  async getClearanceTypes(): Promise<any> {
+    return this.request('/clearance-types');
+  }
+
+  async createClearanceType(clearanceData: {
+    name: string;
+    description?: string;
+    category: string;
+    expires: boolean;
+    defaultValidityMonths?: number;
+  }): Promise<any> {
+    return this.request('/clearance-types', {
+      method: 'POST',
+      body: JSON.stringify(clearanceData),
+    });
+  }
+
+  async getOrganizationClearanceRequirements(organizationId: string): Promise<any> {
+    return this.request(`/organizations/${organizationId}/clearance-requirements`);
+  }
+
+  async updateOrganizationClearanceRequirements(organizationId: string, requirements: any[]): Promise<any> {
+    return this.request(`/organizations/${organizationId}/clearance-requirements`, {
+      method: 'PUT',
+      body: JSON.stringify({ requirements }),
+    });
+  }
+
+  async getTeacherClearances(teacherId: string): Promise<any> {
+    return this.request(`/teachers/${teacherId}/clearances`);
+  }
+
+  async addTeacherClearance(teacherId: string, clearanceData: {
+    clearanceTypeId: string;
+    issuedDate: string;
+    expirationDate?: string;
+    issuingAuthority?: string;
+    certificateNumber?: string;
+    notes?: string;
+  }): Promise<any> {
+    return this.request(`/teachers/${teacherId}/clearances`, {
+      method: 'POST',
+      body: JSON.stringify(clearanceData),
+    });
+  }
+
+  async getTeacherEligibility(): Promise<any> {
+    return this.request('/teachers/eligibility');
+  }
 }
 
 // Create singleton instance
