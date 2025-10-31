@@ -793,7 +793,12 @@ router.post('/users', authenticateFlexible, async (req, res) => {
       return res.status(400).json({ error: 'Invalid profile type' });
     }
 
-    console.log('Creating new user:', { email, profileType: profile.type, sendInvitation });
+    console.log('Creating new user:', { 
+      email, 
+      profileType: profile.type, 
+      sendInvitation,
+      willBeActive: !sendInvitation 
+    });
 
     // Check if user already exists
     const existingUser = await query(
@@ -819,12 +824,13 @@ router.post('/users', authenticateFlexible, async (req, res) => {
     const accountId = accountResult.rows[0].id;
     console.log('Created auth account:', accountId);
 
-    // Create user profile
+    // Create user profile - set is_active based on whether invitation will be sent
+    const isActive = !sendInvitation; // If no invitation, user is immediately active
     const profileResult = await query(
       `INSERT INTO user_profiles (
         account_id, profile_type, first_name, last_name, preferred_name, email, phone, 
-        preferred_contact_method, created_at, updated_at
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW()) 
+        preferred_contact_method, is_active, created_at, updated_at
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW()) 
        RETURNING id`,
       [
         accountId,
@@ -834,7 +840,8 @@ router.post('/users', authenticateFlexible, async (req, res) => {
         profile.preferredName || null,
         email,
         phone || null,
-        profile.preferredContactMethod || 'email'
+        profile.preferredContactMethod || 'email',
+        isActive
       ]
     );
 
