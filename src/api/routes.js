@@ -936,16 +936,25 @@ router.post('/users', authenticateFlexible, async (req, res) => {
 router.get('/setup/validate-token', async (req, res) => {
   try {
     const { token } = req.query;
+    console.log('🔍 Token validation request:', { hasToken: !!token });
 
     if (!token) {
+      console.log('❌ No token provided');
       return res.status(400).json({ valid: false, message: 'Token is required' });
     }
 
     // Verify JWT token
     const jwtSecret = process.env.JWT_SECRET || 'fallback-secret';
     const decoded = jwt.verify(token, jwtSecret);
+    console.log('✅ Token decoded:', { 
+      accountId: decoded.accountId, 
+      profileId: decoded.profileId, 
+      type: decoded.type,
+      email: decoded.email 
+    });
 
     if (decoded.type !== 'user_setup') {
+      console.log('❌ Invalid token type:', decoded.type);
       return res.status(400).json({ valid: false, message: 'Invalid token type' });
     }
 
@@ -968,8 +977,19 @@ router.get('/setup/validate-token', async (req, res) => {
     `;
 
     const userResult = await query(userQuery, [decoded.accountId, decoded.profileId]);
+    console.log('🔍 User query result:', { 
+      rowCount: userResult.rows.length,
+      searchingFor: { accountId: decoded.accountId, profileId: decoded.profileId },
+      foundUser: userResult.rows.length > 0 ? {
+        accountId: userResult.rows[0].account_id,
+        profileId: userResult.rows[0].profile_id,
+        email: userResult.rows[0].email,
+        isActive: userResult.rows[0].is_active
+      } : null
+    });
 
     if (userResult.rows.length === 0) {
+      console.log('❌ User not found in database for accountId:', decoded.accountId, 'profileId:', decoded.profileId);
       return res.status(400).json({ valid: false, message: 'User not found' });
     }
 
@@ -977,6 +997,7 @@ router.get('/setup/validate-token', async (req, res) => {
 
     // Check if already activated
     if (user.is_active) {
+      console.log('❌ Profile already activated for user:', user.email, 'profileId:', user.profile_id);
       return res.status(400).json({ valid: false, message: 'Profile already activated' });
     }
 
@@ -995,10 +1016,12 @@ router.get('/setup/validate-token', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Token validation error:', error);
+    console.error('❌ Token validation error:', error);
     if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
+      console.log('❌ JWT Error:', error.message);
       return res.status(400).json({ valid: false, message: 'Invalid or expired token' });
     }
+    console.log('❌ Internal server error:', error.message);
     res.status(500).json({ valid: false, message: 'Internal server error' });
   }
 });
