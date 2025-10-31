@@ -822,9 +822,9 @@ router.post('/users', authenticateFlexible, async (req, res) => {
     // Create user profile
     const profileResult = await query(
       `INSERT INTO user_profiles (
-        account_id, type, first_name, last_name, preferred_name, email, phone, 
-        preferred_contact_method, email_verified, phone_verified, created_at, updated_at
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW()) 
+        account_id, profile_type, first_name, last_name, preferred_name, email, phone, 
+        preferred_contact_method, created_at, updated_at
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW()) 
        RETURNING id`,
       [
         accountId,
@@ -834,9 +834,7 @@ router.post('/users', authenticateFlexible, async (req, res) => {
         profile.preferredName || null,
         email,
         phone || null,
-        profile.preferredContactMethod || 'email',
-        false,
-        false
+        profile.preferredContactMethod || 'email'
       ]
     );
 
@@ -893,7 +891,15 @@ router.post('/users', authenticateFlexible, async (req, res) => {
 
   } catch (error) {
     console.error('Create user error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      code: error.code
+    });
+    res.status(500).json({ 
+      error: 'Internal server error',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 
