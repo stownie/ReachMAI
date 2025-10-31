@@ -278,6 +278,23 @@ class ApiClient {
   async getUsersByType(userType: 'student' | 'parent' | 'adult' | 'teacher' | 'admin' | 'manager'): Promise<any[]> {
     return this.request(`/users?type=${userType}`);
   }
+
+  // Profile Setup API methods
+  async validateSetupToken(token: string): Promise<any> {
+    return this.request(`/setup/validate-token?token=${token}`);
+  }
+
+  async completeProfileSetup(setupData: {
+    token: string;
+    password: string;
+    preferredContactMethod: 'email' | 'phone';
+    phone?: string;
+  }): Promise<any> {
+    return this.request('/setup/complete-profile', {
+      method: 'POST',
+      body: JSON.stringify(setupData),
+    });
+  }
 }
 
 // Create singleton instance

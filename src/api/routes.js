@@ -931,6 +931,157 @@ router.post('/users', authenticateFlexible, async (req, res) => {
   }
 });
 
+// Profile Setup endpoints
+// Validate setup token
+router.get('/setup/validate-token', async (req, res) => {
+  try {
+    const { token } = req.query;
+
+    if (!token) {
+      return res.status(400).json({ valid: false, message: 'Token is required' });
+    }
+
+    // Verify JWT token
+    const jwtSecret = process.env.JWT_SECRET || 'fallback-secret';
+    const decoded = jwt.verify(token, jwtSecret);
+
+    if (decoded.type !== 'user_setup') {
+      return res.status(400).json({ valid: false, message: 'Invalid token type' });
+    }
+
+    // Check if user still exists and is in pending state
+    const userQuery = `
+      SELECT 
+        aa.id as account_id,
+        aa.email,
+        aa.phone as account_phone,
+        up.id as profile_id,
+        up.profile_type,
+        up.first_name,
+        up.last_name,
+        up.phone as profile_phone,
+        up.preferred_contact_method,
+        up.is_active
+      FROM auth_accounts aa
+      JOIN user_profiles up ON aa.id = up.account_id
+      WHERE aa.id = $1 AND up.id = $2
+    `;
+
+    const userResult = await query(userQuery, [decoded.accountId, decoded.profileId]);
+
+    if (userResult.rows.length === 0) {
+      return res.status(400).json({ valid: false, message: 'User not found' });
+    }
+
+    const user = userResult.rows[0];
+
+    // Check if already activated
+    if (user.is_active) {
+      return res.status(400).json({ valid: false, message: 'Profile already activated' });
+    }
+
+    res.json({
+      valid: true,
+      data: {
+        accountId: user.account_id,
+        profileId: user.profile_id,
+        email: user.email,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        profileType: user.profile_type,
+        phone: user.profile_phone || user.account_phone,
+        preferredContactMethod: user.preferred_contact_method
+      }
+    });
+
+  } catch (error) {
+    console.error('Token validation error:', error);
+    if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
+      return res.status(400).json({ valid: false, message: 'Invalid or expired token' });
+    }
+    res.status(500).json({ valid: false, message: 'Internal server error' });
+  }
+});
+
+// Complete profile setup
+router.post('/setup/complete-profile', async (req, res) => {
+  try {
+    const { token, password, preferredContactMethod, phone } = req.body;
+
+    if (!token || !password || !preferredContactMethod) {
+      return res.status(400).json({ success: false, message: 'Missing required fields' });
+    }
+
+    // Verify JWT token
+    const jwtSecret = process.env.JWT_SECRET || 'fallback-secret';
+    const decoded = jwt.verify(token, jwtSecret);
+
+    if (decoded.type !== 'user_setup') {
+      return res.status(400).json({ success: false, message: 'Invalid token type' });
+    }
+
+    // Check if user still exists and is pending
+    const checkUserQuery = `
+      SELECT aa.id, up.is_active
+      FROM auth_accounts aa
+      JOIN user_profiles up ON aa.id = up.account_id
+      WHERE aa.id = $1 AND up.id = $2
+    `;
+
+    const checkResult = await query(checkUserQuery, [decoded.accountId, decoded.profileId]);
+
+    if (checkResult.rows.length === 0) {
+      return res.status(400).json({ success: false, message: 'User not found' });
+    }
+
+    if (checkResult.rows[0].is_active) {
+      return res.status(400).json({ success: false, message: 'Profile already activated' });
+    }
+
+    // Hash the new password
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    // Update auth account with new password
+    await query(
+      'UPDATE auth_accounts SET password_hash = $1, updated_at = NOW() WHERE id = $2',
+      [hashedPassword, decoded.accountId]
+    );
+
+    // Update user profile - activate and set preferences
+    await query(
+      `UPDATE user_profiles 
+       SET is_active = true, 
+           preferred_contact_method = $1, 
+           phone = $2,
+           updated_at = NOW() 
+       WHERE id = $3`,
+      [preferredContactMethod, phone || null, decoded.profileId]
+    );
+
+    // Also update phone in auth_accounts if provided
+    if (phone) {
+      await query(
+        'UPDATE auth_accounts SET phone = $1, updated_at = NOW() WHERE id = $2',
+        [phone, decoded.accountId]
+      );
+    }
+
+    console.log('✅ Profile setup completed for user:', decoded.email);
+
+    res.json({
+      success: true,
+      message: 'Profile setup completed successfully'
+    });
+
+  } catch (error) {
+    console.error('Complete profile setup error:', error);
+    if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
+      return res.status(400).json({ success: false, message: 'Invalid or expired token' });
+    }
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+});
+
 // Staff Management endpoints
 // Get all staff members
 router.get('/staff', authenticateFlexible, async (req, res) => {

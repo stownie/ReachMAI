@@ -15,6 +15,7 @@ import BulkCommunicationsPage from './pages/BulkCommunicationsPage';
 import AdminDashboard from './pages/AdminDashboard';
 import UserManagementPage from './pages/UserManagementPage';
 import AcceptInvitationPage from './pages/AcceptInvitationPage';
+import ProfileSetupPage from './pages/ProfileSetupPage';
 import SystemAdminPage from './pages/SystemAdminPage';
 import { MobileDashboard } from './pages/MobileDashboard';
 import type { UserProfile } from './types';
@@ -544,6 +545,7 @@ function App() {
       <Routes>
         <Route path="/systemadmin" element={<SystemAdminPage />} />
         <Route path="/accept-invitation" element={<AcceptInvitationPage />} />
+        <Route path="/setup-profile" element={<ProfileSetupPage />} />
         <Route path="/*" element={<AppContent />} />
       </Routes>
     </AuthProvider>
