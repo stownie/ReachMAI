@@ -26,18 +26,31 @@ const StaffManagementPage: React.FC<StaffManagementPageProps> = ({ currentProfil
       setLoading(true);
       console.log('🔄 Loading staff data...');
       
-      // Test authentication first
-      console.log(' Calling getStaff()...');
+      console.log('📞 Calling getStaff()...');
       const staffData = await apiClient.getStaff();
       console.log('✅ Staff data received:', staffData);
+      console.log('Staff data type:', typeof staffData, 'Array?', Array.isArray(staffData));
       
       console.log('📞 Calling getStaffInvitations()...');
       const invitationsData = await apiClient.getStaffInvitations();
       console.log('✅ Invitations data received:', invitationsData);
+      console.log('Invitations data type:', typeof invitationsData, 'Array?', Array.isArray(invitationsData));
       
-      setStaffMembers(staffData);
-      setInvitations(invitationsData);
-      console.log('📊 Final state - Staff members:', staffData.length, 'Invitations:', invitationsData.length);
+      // Ensure we have valid arrays
+      const validStaffData = Array.isArray(staffData) ? staffData : [];
+      const validInvitationsData = Array.isArray(invitationsData) ? invitationsData : [];
+      
+      setStaffMembers(validStaffData);
+      setInvitations(validInvitationsData);
+      console.log('📊 Final state - Staff members:', validStaffData.length, 'Invitations:', validInvitationsData.length);
+      
+      // Validate first items to ensure proper structure
+      if (validStaffData.length > 0) {
+        console.log('First staff member sample:', validStaffData[0]);
+      }
+      if (validInvitationsData.length > 0) {
+        console.log('First invitation sample:', validInvitationsData[0]);
+      }
     } catch (error) {
       console.error('❌ Failed to load staff data:', error);
       console.error('Error details:', {
@@ -227,7 +240,9 @@ const StaffManagementPage: React.FC<StaffManagementPageProps> = ({ currentProfil
     );
   }
 
-  return (
+  // Add error boundary for render issues
+  try {
+    return (
     <div className="min-h-screen bg-accent px-4 py-8">
       <div className="container mx-auto max-w-6xl">
         {/* Header */}
@@ -559,7 +574,31 @@ const StaffManagementPage: React.FC<StaffManagementPageProps> = ({ currentProfil
         )}
       </div>
     </div>
-  );
+    );
+  } catch (renderError) {
+    console.error('❌ Staff Management Page render error:', renderError);
+    return (
+      <div className="min-h-screen bg-accent px-4 py-8">
+        <div className="container mx-auto max-w-6xl">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+            <h2 className="text-lg font-medium text-red-800 mb-2">Error Loading Staff Management</h2>
+            <p className="text-red-600 mb-4">
+              There was an error loading the staff management page. Please try refreshing the page.
+            </p>
+            <p className="text-sm text-red-500">
+              Error: {renderError instanceof Error ? renderError.message : 'Unknown error'}
+            </p>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="mt-4 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+            >
+              Refresh Page
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 };
 
 // Invite Staff Modal Component
