@@ -504,24 +504,15 @@ const UserManagementPage: React.FC<UserManagementPageProps> = ({ currentProfile 
         </div>
       </div>
 
-      {/* TODO: Add User Modal */}
+      {/* Add User Modal */}
       {showAddUserModal && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Add New User</h3>
-            <p className="text-gray-600 mb-4">
-              User creation functionality will be implemented in the next phase.
-            </p>
-            <div className="flex justify-end space-x-3">
-              <button
-                onClick={() => setShowAddUserModal(false)}
-                className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
+        <AddUserModal
+          onClose={() => setShowAddUserModal(false)}
+          onSuccess={() => {
+            setShowAddUserModal(false);
+            loadUsers(); // Reload the user list
+          }}
+        />
       )}
 
       {/* TODO: Edit User Modal */}
@@ -545,6 +536,272 @@ const UserManagementPage: React.FC<UserManagementPageProps> = ({ currentProfile 
           </div>
         </div>
       )}
+    </div>
+  );
+};
+
+// Add User Modal Component
+interface AddUserModalProps {
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
+const AddUserModal: React.FC<AddUserModalProps> = ({ onClose, onSuccess }) => {
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    profileType: 'student' as 'student' | 'parent' | 'adult' | 'teacher' | 'admin' | 'manager',
+    preferredContactMethod: 'email' as 'email' | 'phone',
+    sendInvitation: true
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const profileTypeOptions = [
+    { value: 'student', label: 'Student', icon: GraduationCap, description: 'A student taking classes' },
+    { value: 'parent', label: 'Parent', icon: Heart, description: 'Parent or guardian of a student' },
+    { value: 'adult', label: 'Adult Student', icon: User, description: 'Adult taking classes' },
+    { value: 'teacher', label: 'Teacher', icon: UserCheck, description: 'Music instructor' },
+    { value: 'admin', label: 'Administrator', icon: Shield, description: 'System administrator' },
+    { value: 'manager', label: 'Manager', icon: Building, description: 'Program or facility manager' }
+  ];
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    try {
+      // Validate required fields
+      if (!formData.firstName.trim() || !formData.lastName.trim() || !formData.email.trim()) {
+        setError('Please fill in all required fields');
+        return;
+      }
+
+      // Create the user with profile
+      const userData = {
+        email: formData.email.trim(),
+        phone: formData.phone.trim() || undefined,
+        password: 'temp_password_' + Date.now(), // Temporary password, user will set their own
+        profile: {
+          type: formData.profileType,
+          firstName: formData.firstName.trim(),
+          lastName: formData.lastName.trim(),
+          preferredContactMethod: formData.preferredContactMethod
+        },
+        sendInvitation: formData.sendInvitation
+      };
+
+      console.log('Creating user with data:', userData);
+      const result = await apiClient.createUser(userData);
+      console.log('User created successfully:', result);
+
+      onSuccess();
+      
+      if (formData.sendInvitation) {
+        alert(`User created successfully! An invitation email has been sent to ${formData.email}`);
+      } else {
+        alert('User created successfully!');
+      }
+    } catch (error) {
+      console.error('Failed to create user:', error);
+      setError(error instanceof Error ? error.message : 'Failed to create user');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const selectedProfileType = profileTypeOptions.find(opt => opt.value === formData.profileType);
+
+  return (
+    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="text-xl font-semibold text-gray-900">Add New User</h3>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600"
+          >
+            <XCircle className="h-6 w-6" />
+          </button>
+        </div>
+
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+            <p className="text-sm text-red-600">{error}</p>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Profile Type Selection */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-3">
+              Profile Type *
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {profileTypeOptions.map((option) => {
+                const Icon = option.icon;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, profileType: option.value as any }))}
+                    className={`p-3 border rounded-lg text-left transition-colors ${
+                      formData.profileType === option.value
+                        ? 'border-amber-500 bg-amber-50 text-amber-900'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-2 mb-1">
+                      <Icon className="h-4 w-4" />
+                      <span className="font-medium text-sm">{option.label}</span>
+                    </div>
+                    <p className="text-xs text-gray-600">{option.description}</p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Basic Information */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                First Name *
+              </label>
+              <input
+                type="text"
+                value={formData.firstName}
+                onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Last Name *
+              </label>
+              <input
+                type="text"
+                value={formData.lastName}
+                onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                required
+              />
+            </div>
+          </div>
+
+          {/* Contact Information */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Email Address *
+            </label>
+            <input
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Phone Number (Optional)
+            </label>
+            <input
+              type="tel"
+              value={formData.phone}
+              onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+              placeholder="(555) 123-4567"
+            />
+          </div>
+
+          {/* Preferred Contact Method */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Preferred Contact Method
+            </label>
+            <div className="flex space-x-4">
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  value="email"
+                  checked={formData.preferredContactMethod === 'email'}
+                  onChange={(e) => setFormData(prev => ({ ...prev, preferredContactMethod: e.target.value as 'email' | 'phone' }))}
+                  className="mr-2"
+                />
+                <Mail className="h-4 w-4 mr-1" />
+                Email
+              </label>
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  value="phone"
+                  checked={formData.preferredContactMethod === 'phone'}
+                  onChange={(e) => setFormData(prev => ({ ...prev, preferredContactMethod: e.target.value as 'email' | 'phone' }))}
+                  className="mr-2"
+                />
+                <Phone className="h-4 w-4 mr-1" />
+                Phone
+              </label>
+            </div>
+          </div>
+
+          {/* Send Invitation Option */}
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              id="sendInvitation"
+              checked={formData.sendInvitation}
+              onChange={(e) => setFormData(prev => ({ ...prev, sendInvitation: e.target.checked }))}
+              className="mr-3"
+            />
+            <label htmlFor="sendInvitation" className="text-sm text-gray-700">
+              Send invitation email to complete profile setup
+            </label>
+          </div>
+
+          {/* Selected Profile Info */}
+          {selectedProfileType && (
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <div className="flex items-center space-x-2 mb-2">
+                <selectedProfileType.icon className="h-5 w-5 text-amber-600" />
+                <span className="font-medium text-gray-900">Creating {selectedProfileType.label}</span>
+              </div>
+              <p className="text-sm text-gray-600">{selectedProfileType.description}</p>
+              {formData.sendInvitation && (
+                <p className="text-sm text-amber-600 mt-2">
+                  An invitation will be sent to complete their profile with additional required information.
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex justify-end space-x-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+              disabled={loading}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-6 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+            >
+              {loading && <Clock className="h-4 w-4 animate-spin" />}
+              <span>{loading ? 'Creating...' : 'Create User'}</span>
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 };

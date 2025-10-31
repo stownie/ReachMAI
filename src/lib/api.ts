@@ -239,6 +239,7 @@ class ApiClient {
       preferredName?: string;
       preferredContactMethod: 'email' | 'phone';
     };
+    sendInvitation?: boolean;
   }): Promise<any> {
     return this.request('/users', {
       method: 'POST',

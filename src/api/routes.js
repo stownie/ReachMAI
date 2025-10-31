@@ -777,6 +777,126 @@ router.get('/users', authenticateFlexible, async (req, res) => {
   }
 });
 
+// Create new user with profile
+router.post('/users', authenticateFlexible, async (req, res) => {
+  try {
+    const { email, phone, password, profile, sendInvitation } = req.body;
+
+    // Validate required fields
+    if (!email || !password || !profile || !profile.firstName || !profile.lastName || !profile.type) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    // Validate profile type
+    const validProfileTypes = ['student', 'parent', 'adult', 'teacher', 'admin', 'manager'];
+    if (!validProfileTypes.includes(profile.type)) {
+      return res.status(400).json({ error: 'Invalid profile type' });
+    }
+
+    console.log('Creating new user:', { email, profileType: profile.type, sendInvitation });
+
+    // Check if user already exists
+    const existingUser = await query(
+      'SELECT id FROM auth_accounts WHERE email = $1',
+      [email]
+    );
+
+    if (existingUser.rows.length > 0) {
+      return res.status(400).json({ error: 'User with this email already exists' });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    // Create auth account
+    const accountResult = await query(
+      `INSERT INTO auth_accounts (email, phone, password_hash, email_verified, phone_verified, created_at, updated_at) 
+       VALUES ($1, $2, $3, $4, $5, NOW(), NOW()) 
+       RETURNING id`,
+      [email, phone || null, hashedPassword, false, false]
+    );
+
+    const accountId = accountResult.rows[0].id;
+    console.log('Created auth account:', accountId);
+
+    // Create user profile
+    const profileResult = await query(
+      `INSERT INTO user_profiles (
+        account_id, type, first_name, last_name, preferred_name, email, phone, 
+        preferred_contact_method, email_verified, phone_verified, created_at, updated_at
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW()) 
+       RETURNING id`,
+      [
+        accountId,
+        profile.type,
+        profile.firstName,
+        profile.lastName,
+        profile.preferredName || null,
+        email,
+        phone || null,
+        profile.preferredContactMethod || 'email',
+        false,
+        false
+      ]
+    );
+
+    const profileId = profileResult.rows[0].id;
+    console.log('Created user profile:', profileId);
+
+    // TODO: If sendInvitation is true, send invitation email
+    if (sendInvitation) {
+      console.log('TODO: Send invitation email to:', email);
+      // This would integrate with the email service to send a setup invitation
+    }
+
+    // Return the created user data
+    const newUser = {
+      id: accountId,
+      email,
+      phone,
+      profiles: [{
+        id: profileId,
+        type: profile.type,
+        firstName: profile.firstName,
+        lastName: profile.lastName,
+        preferredName: profile.preferredName,
+        email,
+        phone,
+        preferredContactMethod: profile.preferredContactMethod,
+        emailVerified: false,
+        phoneVerified: false,
+        accountId,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      primaryProfile: {
+        id: profileId,
+        type: profile.type,
+        firstName: profile.firstName,
+        lastName: profile.lastName,
+        preferredName: profile.preferredName,
+        email,
+        phone,
+        preferredContactMethod: profile.preferredContactMethod,
+        emailVerified: false,
+        phoneVerified: false,
+        accountId,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
+    };
+
+    console.log('User created successfully:', { accountId, profileId, email });
+    res.status(201).json(newUser);
+
+  } catch (error) {
+    console.error('Create user error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Staff Management endpoints
 // Get all staff members
 router.get('/staff', authenticateFlexible, async (req, res) => {
