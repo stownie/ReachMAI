@@ -26,6 +26,15 @@ const StaffManagementPage: React.FC<StaffManagementPageProps> = ({ currentProfil
       setLoading(true);
       console.log('🔄 Loading staff data...');
       
+      // Test authentication first
+      console.log('🔐 Testing authentication...');
+      try {
+        const authTest = await apiClient.testAuth();
+        console.log('✅ Auth test result:', authTest);
+      } catch (authError) {
+        console.error('❌ Auth test failed:', authError);
+      }
+      
       console.log('📞 Calling getStaff()...');
       const staffData = await apiClient.getStaff();
       console.log('✅ Staff data received:', staffData);

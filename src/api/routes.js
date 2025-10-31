@@ -680,6 +680,22 @@ router.get('/notifications', authenticateToken, async (req, res) => {
   }
 });
 
+// Debug endpoint to test authentication
+router.get('/auth-test', authenticateFlexible, async (req, res) => {
+  try {
+    res.json({
+      message: 'Authentication successful',
+      authType: req.user ? 'JWT' : (req.isSystemAdmin ? 'SystemAdmin' : 'Unknown'),
+      user: req.user || null,
+      isSystemAdmin: !!req.isSystemAdmin,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Auth test error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // User Management endpoints
 // Get all users with their profiles
 router.get('/users', authenticateFlexible, async (req, res) => {

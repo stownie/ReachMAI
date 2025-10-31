@@ -74,6 +74,15 @@ const UserManagementPage: React.FC<UserManagementPageProps> = ({ currentProfile 
       setLoading(true);
       console.log('🔄 Loading user data...');
       
+      // Test authentication first
+      console.log('🔐 Testing authentication...');
+      try {
+        const authTest = await apiClient.testAuth();
+        console.log('✅ Auth test result:', authTest);
+      } catch (authError) {
+        console.error('❌ Auth test failed:', authError);
+      }
+      
       // Load real user data from API
       console.log('📞 Calling getAllUsers()...');
       const userData = await apiClient.getAllUsers();

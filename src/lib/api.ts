@@ -274,6 +274,11 @@ class ApiClient {
     });
   }
 
+  // Debug method to test authentication
+  async testAuth(): Promise<any> {
+    return this.request('/auth-test');
+  }
+
   // User Management API methods
   async getAllUsers(): Promise<any[]> {
     return this.request('/users');
