@@ -777,17 +777,22 @@ router.post('/staff/invite', authenticateFlexible, async (req, res) => {
 
     // Get the user's profile for invitation tracking (no permission check needed)
     let inviterProfile = { id: null };
+    let inviterName = 'System Administrator';
     
     if (req.user && req.user.accountId) {
       // Regular JWT authentication
       const userProfile = await query(
-        'SELECT id, profile_type FROM user_profiles WHERE account_id = $1 AND is_active = true',
+        'SELECT id, profile_type, first_name, last_name FROM user_profiles WHERE account_id = $1 AND is_active = true',
         [req.user.accountId]
       );
-      inviterProfile = userProfile.rows[0] || { id: null };
+      if (userProfile.rows[0]) {
+        inviterProfile = userProfile.rows[0];
+        inviterName = `${userProfile.rows[0].first_name} ${userProfile.rows[0].last_name}`;
+      }
     } else if (req.isSystemAdmin) {
-      // System admin authentication - use a special identifier
-      inviterProfile = { id: 'system-admin' };
+      // System admin authentication - use NULL for invited_by (allowed by schema)
+      inviterProfile = { id: null };
+      inviterName = 'System Administrator';
     }
 
     // Check if email already exists
@@ -832,7 +837,7 @@ router.post('/staff/invite', authenticateFlexible, async (req, res) => {
       lastName,
       role,
       token: invitationToken,
-      invitedBy: inviterProfile.id
+      invitedBy: inviterName
     });
 
     res.status(201).json({
