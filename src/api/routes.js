@@ -2,7 +2,7 @@ import express from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { query, db } from '../lib/database.js';
-import { sendStaffInvitation, sendWelcomeEmail } from '../lib/emailService.js';
+import emailService from '../lib/emailService.js';
 
 const router = express.Router();
 
@@ -753,7 +753,7 @@ router.post('/staff/invite', authenticateToken, async (req, res) => {
     const invitation = invitationResult.rows[0];
 
     // Send invitation email
-    const emailResult = await sendStaffInvitation({
+    const emailResult = await emailService.sendStaffInvitation({
       email,
       firstName,
       lastName,
