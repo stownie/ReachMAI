@@ -14,12 +14,14 @@ import MessagesPage from './pages/MessagesPage';
 import BulkCommunicationsPage from './pages/BulkCommunicationsPage';
 import AdminDashboard from './pages/AdminDashboard';
 import UserManagementPage from './pages/UserManagementPage';
+import OrganizationManagementPage from './pages/OrganizationManagementPage';
+import TeacherClearanceManagementPage from './pages/TeacherClearanceManagementPage';
 import AcceptInvitationPage from './pages/AcceptInvitationPage';
 import ProfileSetupPage from './pages/ProfileSetupPage';
 import SystemAdminPage from './pages/SystemAdminPage';
 import { MobileDashboard } from './pages/MobileDashboard';
 import type { UserProfile } from './types';
-import { Calendar, Users, BookOpen, Clock, DollarSign, Bell, BarChart3, Settings } from 'lucide-react';
+import { Calendar, Users, BookOpen, Clock, DollarSign, Bell, BarChart3, Settings, Building, Shield } from 'lucide-react';
 
 function AppContent() {
   const { currentProfile, account, isAuthenticated, logout, switchProfile, isLoading } = useAuth();
@@ -126,11 +128,18 @@ function AppContent() {
           href: '/users'
         },
         {
-          title: 'Staff',
-          description: 'Manage staff members and invitations',
-          icon: Users,
+          title: 'Organizations',
+          description: 'Manage organizations and campuses',
+          icon: Building,
+          color: 'bg-emerald-600',
+          href: '/organizations'
+        },
+        {
+          title: 'Teacher Clearances',
+          description: 'Manage teacher certifications and clearances',
+          icon: Shield,
           color: 'bg-purple-600',
-          href: '/staff'
+          href: '/teacher-clearances'
         },
         {
           title: 'Schedule',
@@ -257,11 +266,18 @@ function AppContent() {
             href: '/users'
           },
           {
-            title: 'Staff',
-            description: 'Manage staff members and invitations',
-            icon: Users,
+            title: 'Organizations',
+            description: 'Manage organizations and campuses',
+            icon: Building,
+            color: 'bg-emerald-600',
+            href: '/organizations'
+          },
+          {
+            title: 'Teacher Clearances',
+            description: 'Manage teacher certifications and clearances',
+            icon: Shield,
             color: 'bg-purple-600',
-            href: '/staff'
+            href: '/teacher-clearances'
           },
           {
             title: 'Schedule',
@@ -337,6 +353,10 @@ function AppContent() {
       case 'users':
       case 'staff':
         return currentProfile ? <UserManagementPage currentProfile={currentProfile as any} /> : null;
+      case 'organizations':
+        return <OrganizationManagementPage />;
+      case 'teacher-clearances':
+        return <TeacherClearanceManagementPage />;
       case 'schedule':
         return currentProfile ? <SchedulePage currentProfile={currentProfile} /> : null;
       case 'attendance':
