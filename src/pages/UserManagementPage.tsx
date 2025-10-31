@@ -416,16 +416,29 @@ const UserManagementPage: React.FC<UserManagementPageProps> = ({ currentProfile:
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center space-x-2">
-                          {profile.emailVerified && profile.phoneVerified ? (
+                        <div className="flex flex-col space-y-1">
+                          {/* Profile Activation Status */}
+                          {profile.isActive ? (
                             <div className="flex items-center space-x-1 text-green-600">
-                              <CheckCircle className="h-4 w-4" />
-                              <span className="text-sm">Verified</span>
+                              <CheckCircle className="h-3 w-3" />
+                              <span className="text-xs">Active</span>
                             </div>
                           ) : (
-                            <div className="flex items-center space-x-1 text-yellow-600">
-                              <Clock className="h-4 w-4" />
-                              <span className="text-sm">Pending</span>
+                            <div className="flex items-center space-x-1 text-orange-600">
+                              <Clock className="h-3 w-3" />
+                              <span className="text-xs">Setup Pending</span>
+                            </div>
+                          )}
+                          {/* Verification Status */}
+                          {profile.emailVerified && profile.phoneVerified ? (
+                            <div className="flex items-center space-x-1 text-blue-600">
+                              <CheckCircle className="h-3 w-3" />
+                              <span className="text-xs">Verified</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center space-x-1 text-gray-500">
+                              <Clock className="h-3 w-3" />
+                              <span className="text-xs">Unverified</span>
                             </div>
                           )}
                         </div>

@@ -715,7 +715,7 @@ router.get('/users', authenticateFlexible, async (req, res) => {
         up.updated_at as profile_updated
       FROM auth_accounts aa
       LEFT JOIN user_profiles up ON aa.id = up.account_id
-      WHERE up.is_active = true OR up.is_active IS NULL
+      WHERE up.id IS NOT NULL
       ORDER BY aa.created_at DESC, up.created_at DESC
     `;
 
