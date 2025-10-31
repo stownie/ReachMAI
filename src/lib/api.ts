@@ -225,11 +225,33 @@ class ApiClient {
 
   // Staff Management API methods
   async getStaff(): Promise<any[]> {
-    return this.request('/staff');
+    const cacheBuster = Date.now();
+    console.log('🔍 API: Fetching staff data with cache buster:', cacheBuster);
+    const result = await this.request(`/staff?_t=${cacheBuster}`, {
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    });
+    console.log('🔍 API: Staff data response:', result);
+    console.log('🔍 API: Staff data is array?', Array.isArray(result), 'Length:', result?.length);
+    return result;
   }
 
   async getStaffInvitations(): Promise<any[]> {
-    return this.request('/staff/invitations');
+    const cacheBuster = Date.now();
+    console.log('🔍 API: Fetching staff invitations with cache buster:', cacheBuster);
+    const result = await this.request(`/staff/invitations?_t=${cacheBuster}`, {
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    });
+    console.log('🔍 API: Staff invitations response:', result);
+    console.log('🔍 API: Staff invitations is array?', Array.isArray(result), 'Length:', result?.length);
+    return result;
   }
 
   async inviteStaff(invitationData: {

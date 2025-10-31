@@ -8,6 +8,8 @@ interface StaffManagementPageProps {
 }
 
 const StaffManagementPage: React.FC<StaffManagementPageProps> = ({ currentProfile }) => {
+  console.log('🏢 StaffManagementPage component rendered with profile:', currentProfile);
+  
   const [activeTab, setActiveTab] = useState<'staff' | 'invitations'>('staff');
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -210,16 +212,22 @@ const StaffManagementPage: React.FC<StaffManagementPageProps> = ({ currentProfil
     }
   };
 
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', {
+  const formatDate = (date: Date | string | null | undefined) => {
+    if (!date) return 'N/A';
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    if (isNaN(dateObj.getTime())) return 'Invalid Date';
+    return dateObj.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
     });
   };
 
-  const formatDateTime = (date: Date) => {
-    return date.toLocaleDateString('en-US', {
+  const formatDateTime = (date: Date | string | null | undefined) => {
+    if (!date) return 'N/A';
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    if (isNaN(dateObj.getTime())) return 'Invalid Date';
+    return dateObj.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -379,7 +387,7 @@ const StaffManagementPage: React.FC<StaffManagementPageProps> = ({ currentProfil
                           <div className="flex items-center">
                             <RoleIcon className="h-4 w-4 text-gray-400 mr-2" />
                             <span className="text-sm text-gray-900">
-                              {getRoleDisplayName(member.role, member.adminRole?.name.toLowerCase().replace(' ', '_'))}
+                              {getRoleDisplayName(member.role)}
                             </span>
                           </div>
                         </td>
@@ -508,7 +516,7 @@ const StaffManagementPage: React.FC<StaffManagementPageProps> = ({ currentProfil
                           <div className="flex items-center">
                             <RoleIcon className="h-4 w-4 text-gray-400 mr-2" />
                             <span className="text-sm text-gray-900">
-                              {getRoleDisplayName(invitation.role, invitation.adminRole)}
+                              {getRoleDisplayName(invitation.role)}
                             </span>
                           </div>
                         </td>

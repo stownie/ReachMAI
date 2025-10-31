@@ -12,6 +12,11 @@ export default function SystemAdminPage() {
   const [currentPage, setCurrentPage] = useState<string>('dashboard');
   const navigate = useNavigate();
 
+  // Debug navigation changes
+  useEffect(() => {
+    console.log('🔄 SystemAdmin currentPage changed to:', currentPage);
+  }, [currentPage]);
+
   // Check authentication status on mount
   useEffect(() => {
     const authStatus = sessionStorage.getItem('systemAdminAuthenticated');
@@ -146,6 +151,7 @@ export default function SystemAdminPage() {
           </div>
         );
       case 'staff':
+        console.log('🏢 Rendering StaffManagementPage with profile:', systemAdminProfile);
         return (
           <div className="bg-gray-50 min-h-screen">
             <StaffManagementPage currentProfile={systemAdminProfile} />
