@@ -776,13 +776,19 @@ router.post('/staff/invite', authenticateFlexible, async (req, res) => {
     const { email, firstName, lastName, role, adminRole } = req.body;
 
     // Get the user's profile for invitation tracking (no permission check needed)
-    const userProfile = await query(
-      'SELECT id, profile_type FROM user_profiles WHERE account_id = $1 AND is_active = true',
-      [req.user.accountId]
-    );
+    let inviterProfile = { id: null };
     
-    // Use the first available profile for invitation tracking
-    const inviterProfile = userProfile.rows[0] || { id: null };
+    if (req.user && req.user.accountId) {
+      // Regular JWT authentication
+      const userProfile = await query(
+        'SELECT id, profile_type FROM user_profiles WHERE account_id = $1 AND is_active = true',
+        [req.user.accountId]
+      );
+      inviterProfile = userProfile.rows[0] || { id: null };
+    } else if (req.isSystemAdmin) {
+      // System admin authentication - use a special identifier
+      inviterProfile = { id: 'system-admin' };
+    }
 
     // Check if email already exists
     const existingAccount = await query(

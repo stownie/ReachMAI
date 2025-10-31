@@ -78,6 +78,17 @@ class EmailService {
 
     } catch (error) {
       console.error('❌ Failed to initialize email service:', error);
+      
+      // Check if this is a Gmail OAuth error
+      if (error.message && error.message.includes('invalid_grant')) {
+        console.error('🔑 Gmail OAuth Error: The refresh token has expired or been revoked.');
+        console.error('📝 To fix this:');
+        console.error('   1. Go to https://developers.google.com/oauthplayground');
+        console.error('   2. Use the OAuth2 scope: https://mail.google.com/');
+        console.error('   3. Generate a new refresh token');
+        console.error('   4. Update the GMAIL_REFRESH_TOKEN environment variable');
+      }
+      
       this.isConfigured = false;
     }
   }
