@@ -34,7 +34,7 @@ interface UserWithAccount {
   primaryProfile: UserProfile | null;
 }
 
-const UserManagementPage: React.FC<UserManagementPageProps> = ({ currentProfile }) => {
+const UserManagementPage: React.FC<UserManagementPageProps> = ({ currentProfile: _ }) => {
   const [users, setUsers] = useState<UserWithAccount[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<UserWithAccount[]>([]);
   const [loading, setLoading] = useState(true);

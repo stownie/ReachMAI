@@ -303,9 +303,6 @@ class EmailService {
     `;
   }
 
-  // Method to send password reset emails (for future use)
-  }
-
   generateUserInvitationEmailHTML({ firstName, lastName, profileType, invitationUrl, invitedBy, expiryDays }) {
     return `
 <!DOCTYPE html>
