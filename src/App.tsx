@@ -13,7 +13,6 @@ import NotificationsPage from './pages/NotificationsPage';
 import MessagesPage from './pages/MessagesPage';
 import BulkCommunicationsPage from './pages/BulkCommunicationsPage';
 import AdminDashboard from './pages/AdminDashboard';
-import StaffManagementPage from './pages/StaffManagementPage';
 import UserManagementPage from './pages/UserManagementPage';
 import AcceptInvitationPage from './pages/AcceptInvitationPage';
 import SystemAdminPage from './pages/SystemAdminPage';
@@ -335,9 +334,8 @@ function AppContent() {
   const renderCurrentPage = () => {
     switch (currentPage) {
       case 'users':
-        return currentProfile ? <UserManagementPage currentProfile={currentProfile as any} /> : null;
       case 'staff':
-        return currentProfile ? <StaffManagementPage currentProfile={currentProfile as any} /> : null;
+        return currentProfile ? <UserManagementPage currentProfile={currentProfile as any} /> : null;
       case 'schedule':
         return currentProfile ? <SchedulePage currentProfile={currentProfile} /> : null;
       case 'attendance':
