@@ -72,9 +72,12 @@ const UserManagementPage: React.FC<UserManagementPageProps> = ({ currentProfile 
   const loadUsers = async () => {
     try {
       setLoading(true);
+      console.log('🔄 Loading user data...');
       
       // Load real user data from API
+      console.log('📞 Calling getAllUsers()...');
       const userData = await apiClient.getAllUsers();
+      console.log('✅ User data received:', userData);
       
       // Transform API data to match component interface
       const transformedUsers: UserWithAccount[] = userData.map(user => ({
@@ -94,9 +97,15 @@ const UserManagementPage: React.FC<UserManagementPageProps> = ({ currentProfile 
       }));
       
       setUsers(transformedUsers);
+      console.log('📊 Final state - Users:', transformedUsers.length);
       
     } catch (error) {
-      console.error('Failed to load users:', error);
+      console.error('❌ Failed to load user data:', error);
+      console.error('Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        status: (error as any)?.status || 'No status',
+        stack: error instanceof Error ? error.stack : 'No stack'
+      });
       // Fallback to empty array on error
       setUsers([]);
     } finally {

@@ -24,15 +24,26 @@ const StaffManagementPage: React.FC<StaffManagementPageProps> = ({ currentProfil
   const loadStaffData = async () => {
     try {
       setLoading(true);
-      const [staffData, invitationsData] = await Promise.all([
-        apiClient.getStaff(),
-        apiClient.getStaffInvitations()
-      ]);
+      console.log('🔄 Loading staff data...');
+      
+      console.log('📞 Calling getStaff()...');
+      const staffData = await apiClient.getStaff();
+      console.log('✅ Staff data received:', staffData);
+      
+      console.log('📞 Calling getStaffInvitations()...');
+      const invitationsData = await apiClient.getStaffInvitations();
+      console.log('✅ Invitations data received:', invitationsData);
       
       setStaffMembers(staffData);
       setInvitations(invitationsData);
+      console.log('📊 Final state - Staff members:', staffData.length, 'Invitations:', invitationsData.length);
     } catch (error) {
-      console.error('Failed to load staff data:', error);
+      console.error('❌ Failed to load staff data:', error);
+      console.error('Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        status: (error as any)?.status || 'No status',
+        stack: error instanceof Error ? error.stack : 'No stack'
+      });
       // Fallback to empty arrays on error
       setStaffMembers([]);
       setInvitations([]);
