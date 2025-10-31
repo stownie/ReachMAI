@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Users, BarChart3 } from 'lucide-react';
+import { LogOut, Users, BarChart3, Shield } from 'lucide-react';
 import SystemAdminAuth from '../components/SystemAdminAuth';
 import AdminDashboard from './AdminDashboard';
 import UserManagementPage from './UserManagementPage';
