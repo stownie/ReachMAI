@@ -214,7 +214,8 @@ class EmailService {
           profileType: profileTypeName,
           invitationUrl,
           invitedBy,
-          expiryDays
+          expiryDays,
+          email
         })
       };
 
@@ -303,7 +304,7 @@ class EmailService {
     `;
   }
 
-  generateUserInvitationEmailHTML({ firstName, lastName, profileType, invitationUrl, invitedBy, expiryDays }) {
+  generateUserInvitationEmailHTML({ firstName, lastName, profileType, invitationUrl, invitedBy, expiryDays, email }) {
     return `
 <!DOCTYPE html>
 <html lang="en">
