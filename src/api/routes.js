@@ -698,21 +698,12 @@ router.get('/staff', authenticateFlexible, async (req, res) => {
         up.updated_at,
         aa.email_verified,
         aa.phone,
-        ar.name as admin_role_name,
-        ar.description as admin_role_description,
-        ar.level as admin_role_level,
         inv.invited_by,
-        inv.invited_at,
-        (
-          SELECT MAX(created_at) 
-          FROM auth_tokens 
-          WHERE account_id = aa.id AND token_type = 'login'
-        ) as last_login
+        inv.invited_at
       FROM user_profiles up
       JOIN auth_accounts aa ON up.account_id = aa.id
-      LEFT JOIN admin_roles ar ON up.admin_role_id = ar.id
       LEFT JOIN staff_invitations inv ON up.email = inv.email AND inv.status = 'accepted'
-      WHERE up.profile_type IN ('admin', 'teacher') 
+      WHERE up.profile_type IN ('admin', 'teacher', 'manager') 
         AND up.is_active = true
       ORDER BY up.created_at DESC
     `;
@@ -1049,13 +1040,7 @@ router.post('/staff/accept-invitation', async (req, res) => {
       [account.id, invitation.role, invitation.first_name, invitation.last_name, invitation.email]
     );
 
-    // If admin role, create admin profile entry
-    if (invitation.role === 'admin' && invitation.admin_role) {
-      await query(
-        'INSERT INTO admin_roles (user_profile_id, name, permissions, created_at) VALUES ($1, $2, $3, NOW())',
-        [profileResult.rows[0].id, invitation.admin_role.replace('_', ' '), '{}']
-      );
-    }
+    // Admin role is handled by the profile_type field
 
     // Mark invitation as accepted
     await query(
