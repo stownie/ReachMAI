@@ -200,6 +200,73 @@ export const authenticateToken = (req, res, next) => {
   });
 };
 
+// System Admin authentication middleware
+export const authenticateSystemAdmin = (req, res, next) => {
+  const { username, password } = req.body;
+  
+  console.log('🔐 System Admin auth check:', {
+    hasUsername: !!username,
+    hasPassword: !!password,
+    endpoint: req.path
+  });
+
+  const expectedUsername = process.env.VITE_SYSTEM_ADMIN_USERNAME || 'systemadmin';
+  const expectedPassword = process.env.VITE_SYSTEM_ADMIN_PASSWORD || 'SecurePassword123!';
+
+  if (username === expectedUsername && password === expectedPassword) {
+    console.log('✅ System admin authenticated for endpoint:', req.path);
+    req.isSystemAdmin = true;
+    next();
+  } else {
+    console.log('❌ System admin authentication failed for endpoint:', req.path);
+    return res.status(401).json({ error: 'System admin access required' });
+  }
+};
+
+// Flexible authentication middleware (JWT or System Admin)
+export const authenticateFlexible = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+  
+  // Try JWT authentication first
+  if (token) {
+    const jwtSecret = process.env.JWT_SECRET || 'fallback-secret';
+    jwt.verify(token, jwtSecret, (err, user) => {
+      if (!err) {
+        console.log('✅ JWT Token verified for user:', user.accountId, 'endpoint:', req.path);
+        req.user = user;
+        return next();
+      }
+    });
+  }
+  
+  // If JWT fails, check for system admin credentials in request body or query params
+  const { sysAdminUsername: bodyUsername, sysAdminPassword: bodyPassword } = req.body || {};
+  const { sysAdminUsername: queryUsername, sysAdminPassword: queryPassword } = req.query || {};
+  
+  const sysAdminUsername = bodyUsername || queryUsername;
+  const sysAdminPassword = bodyPassword || queryPassword;
+  
+  if (sysAdminUsername && sysAdminPassword) {
+    const expectedUsername = process.env.VITE_SYSTEM_ADMIN_USERNAME || 'systemadmin';
+    const expectedPassword = process.env.VITE_SYSTEM_ADMIN_PASSWORD || 'SecurePassword123!';
+    
+    if (sysAdminUsername === expectedUsername && sysAdminPassword === expectedPassword) {
+      console.log('✅ System admin authenticated for endpoint:', req.path);
+      req.isSystemAdmin = true;
+      return next();
+    }
+  }
+  
+  console.log('❌ No valid authentication provided for:', req.path);
+  console.log('Auth details:', {
+    hasToken: !!token,
+    hasBodyAuth: !!(bodyUsername && bodyPassword),
+    hasQueryAuth: !!(queryUsername && queryPassword)
+  });
+  return res.status(401).json({ error: 'Authentication required' });
+};
+
 // Auth endpoints
 router.post('/auth/login', async (req, res) => {
   try {
@@ -615,7 +682,7 @@ router.get('/notifications', authenticateToken, async (req, res) => {
 
 // Staff Management endpoints
 // Get all staff members
-router.get('/staff', authenticateToken, async (req, res) => {
+router.get('/staff', authenticateFlexible, async (req, res) => {
   try {
     // User is authenticated, no additional permission check needed
 
@@ -681,7 +748,7 @@ router.get('/staff', authenticateToken, async (req, res) => {
 });
 
 // Get all staff invitations
-router.get('/staff/invitations', authenticateToken, async (req, res) => {
+router.get('/staff/invitations', authenticateFlexible, async (req, res) => {
   try {
     // User is authenticated, no additional permission check needed
 
@@ -704,7 +771,7 @@ router.get('/staff/invitations', authenticateToken, async (req, res) => {
 });
 
 // Create staff invitation
-router.post('/staff/invite', authenticateToken, async (req, res) => {
+router.post('/staff/invite', authenticateFlexible, async (req, res) => {
   try {
     const { email, firstName, lastName, role, adminRole } = req.body;
 
@@ -778,7 +845,7 @@ router.post('/staff/invite', authenticateToken, async (req, res) => {
 });
 
 // Update staff member
-router.put('/staff/:staffId', authenticateToken, async (req, res) => {
+router.put('/staff/:staffId', authenticateFlexible, async (req, res) => {
   try {
     const { staffId } = req.params;
     const { firstName, lastName, role, adminRole, status } = req.body;
@@ -834,7 +901,7 @@ router.put('/staff/:staffId', authenticateToken, async (req, res) => {
 });
 
 // Delete staff member
-router.delete('/staff/:staffId', authenticateToken, async (req, res) => {
+router.delete('/staff/:staffId', authenticateFlexible, async (req, res) => {
   try {
     const { staffId } = req.params;
 
@@ -870,7 +937,7 @@ router.delete('/staff/:staffId', authenticateToken, async (req, res) => {
 });
 
 // Cancel staff invitation
-router.delete('/staff/invitations/:invitationId', authenticateToken, async (req, res) => {
+router.delete('/staff/invitations/:invitationId', authenticateFlexible, async (req, res) => {
   try {
     const { invitationId } = req.params;
 
@@ -895,7 +962,7 @@ router.delete('/staff/invitations/:invitationId', authenticateToken, async (req,
 });
 
 // Resend staff invitation
-router.post('/staff/invitations/:invitationId/resend', authenticateToken, async (req, res) => {
+router.post('/staff/invitations/:invitationId/resend', authenticateFlexible, async (req, res) => {
   try {
     const { invitationId } = req.params;
 

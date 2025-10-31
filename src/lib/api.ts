@@ -22,14 +22,39 @@ class ApiClient {
   }
 
   private async request(endpoint: string, options: RequestInit = {}): Promise<any> {
-    const url = `${API_BASE_URL}/api${endpoint}`;
+    let url = `${API_BASE_URL}/api${endpoint}`;
+    
+    // Check for system admin authentication
+    const isSystemAdminAuthenticated = typeof window !== 'undefined' && sessionStorage.getItem('systemAdminAuthenticated') === 'true';
     
     // Debug logging for token usage
     if (endpoint !== '/auth/login') {
       console.log(`🌐 API Request to ${endpoint}:`, {
         hasToken: !!this.token,
-        tokenPrefix: this.token ? this.token.substring(0, 20) + '...' : 'none'
+        tokenPrefix: this.token ? this.token.substring(0, 20) + '...' : 'none',
+        isSystemAdmin: isSystemAdminAuthenticated
       });
+    }
+    
+    // Prepare request - include system admin credentials if authenticated as system admin and no regular token
+    let requestBody = options.body;
+    const systemAdminCredentials = {
+      sysAdminUsername: import.meta.env.VITE_SYSTEM_ADMIN_USERNAME || 'systemadmin',
+      sysAdminPassword: import.meta.env.VITE_SYSTEM_ADMIN_PASSWORD || 'SecurePassword123!'
+    };
+    
+    if (isSystemAdminAuthenticated && !this.token) {
+      if (options.method === 'GET' || !options.method) {
+        // For GET requests, add credentials as query parameters
+        const urlObj = new URL(url);
+        urlObj.searchParams.set('sysAdminUsername', systemAdminCredentials.sysAdminUsername);
+        urlObj.searchParams.set('sysAdminPassword', systemAdminCredentials.sysAdminPassword);
+        url = urlObj.toString();
+      } else {
+        // For POST/PUT/DELETE requests, add credentials to body
+        const existingBody = options.body ? JSON.parse(options.body as string) : {};
+        requestBody = JSON.stringify({ ...existingBody, ...systemAdminCredentials });
+      }
     }
     
     const config: RequestInit = {
@@ -39,6 +64,7 @@ class ApiClient {
         ...options.headers,
       },
       ...options,
+      ...(requestBody && { body: requestBody }),
     };
 
     try {
