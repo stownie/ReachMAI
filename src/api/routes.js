@@ -231,13 +231,15 @@ export const authenticateFlexible = (req, res, next) => {
   // Try JWT authentication first
   if (token) {
     const jwtSecret = process.env.JWT_SECRET || 'fallback-secret';
-    jwt.verify(token, jwtSecret, (err, user) => {
-      if (!err) {
-        console.log('✅ JWT Token verified for user:', user.accountId, 'endpoint:', req.path);
-        req.user = user;
-        return next();
-      }
-    });
+    try {
+      const user = jwt.verify(token, jwtSecret);
+      console.log('✅ JWT Token verified for user:', user.accountId, 'endpoint:', req.path);
+      req.user = user;
+      return next();
+    } catch (err) {
+      console.log('❌ JWT verification failed:', err.message);
+      // Continue to check system admin credentials
+    }
   }
   
   // If JWT fails, check for system admin credentials in request body or query params
