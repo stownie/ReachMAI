@@ -936,15 +936,19 @@ router.post('/users', authenticateFlexible, async (req, res) => {
 router.get('/setup/validate-token', async (req, res) => {
   try {
     const { token } = req.query;
-    console.log('🔍 Token validation request:', { hasToken: !!token });
+    console.log('🔍 Token validation request:', { hasToken: !!token, tokenLength: token?.length });
 
     if (!token) {
       console.log('❌ No token provided');
       return res.status(400).json({ valid: false, message: 'Token is required' });
     }
 
+    // Log token details for debugging
+    console.log('🔍 Raw token (first 50 chars):', token.substring(0, 50) + '...');
+
     // Verify JWT token
     const jwtSecret = process.env.JWT_SECRET || 'fallback-secret';
+    console.log('🔑 Using JWT secret (length):', jwtSecret.length);
     const decoded = jwt.verify(token, jwtSecret);
     console.log('✅ Token decoded:', { 
       accountId: decoded.accountId, 
@@ -976,6 +980,12 @@ router.get('/setup/validate-token', async (req, res) => {
       WHERE aa.id = $1 AND up.id = $2
     `;
 
+    console.log('🔍 About to execute user query with params:', {
+      accountId: decoded.accountId,
+      profileId: decoded.profileId,
+      query: userQuery.replace(/\s+/g, ' ').trim()
+    });
+
     const userResult = await query(userQuery, [decoded.accountId, decoded.profileId]);
     console.log('🔍 User query result:', { 
       rowCount: userResult.rows.length,
@@ -984,12 +994,30 @@ router.get('/setup/validate-token', async (req, res) => {
         accountId: userResult.rows[0].account_id,
         profileId: userResult.rows[0].profile_id,
         email: userResult.rows[0].email,
-        isActive: userResult.rows[0].is_active
-      } : null
+        isActive: userResult.rows[0].is_active,
+        profileType: userResult.rows[0].profile_type
+      } : null,
+      allRows: userResult.rows
     });
 
     if (userResult.rows.length === 0) {
       console.log('❌ User not found in database for accountId:', decoded.accountId, 'profileId:', decoded.profileId);
+      
+      // Debug: Check what users actually exist
+      try {
+        const debugQuery = `
+          SELECT aa.id as account_id, up.id as profile_id, aa.email, up.profile_type, up.is_active
+          FROM auth_accounts aa
+          JOIN user_profiles up ON aa.id = up.account_id
+          ORDER BY aa.created_at DESC
+          LIMIT 5
+        `;
+        const debugResult = await query(debugQuery);
+        console.log('🔍 Recent users in database:', debugResult.rows);
+      } catch (debugError) {
+        console.log('❌ Debug query failed:', debugError.message);
+      }
+      
       return res.status(400).json({ valid: false, message: 'User not found' });
     }
 
