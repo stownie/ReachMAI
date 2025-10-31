@@ -9,13 +9,9 @@ import {
   Phone, 
   Mail, 
   Globe, 
-  Shield, 
-  CheckCircle, 
-  XCircle,
-  AlertTriangle,
-  Users,
-  BookOpen,
-  Award
+  Shield,
+  Award,
+  BookOpen
 } from 'lucide-react';
 import { apiClient } from '../lib/api';
 
@@ -147,19 +143,16 @@ const OrganizationManagementPage: React.FC = () => {
 
   const handleEditOrganization = async (org: Organization) => {
     try {
-      // Load full organization details including clearance requirements
-      const fullOrg = await apiClient.request(`/organizations/${org.id}`);
-      
       setFormData({
-        name: fullOrg.name,
-        catalogCode: fullOrg.catalog_code,
-        address: fullOrg.address || '',
-        phone: fullOrg.phone || '',
-        email: fullOrg.email || '',
-        website: fullOrg.website || '',
-        requiresClearance: fullOrg.requires_clearance || false
+        name: org.name,
+        catalogCode: org.catalog_code,
+        address: org.address || '',
+        phone: org.phone || '',
+        email: org.email || '',
+        website: org.website || '',
+        requiresClearance: org.requires_clearance || false
       });
-      setEditingOrganization(fullOrg);
+      setEditingOrganization(org);
       setShowEditModal(true);
     } catch (error) {
       console.error('Failed to load organization details:', error);
@@ -261,25 +254,14 @@ const OrganizationManagementPage: React.FC = () => {
         phone: formData.phone,
         email: formData.email,
         website: formData.website,
-        clearanceRequirements: formData.clearanceRequirements.map(req => ({
-          clearanceTypeId: req.clearance_type_id,
-          isRequired: req.is_required,
-          customValidityMonths: req.custom_validity_months,
-          notes: req.notes
-        }))
+        requiresClearance: formData.requiresClearance
       };
 
       if (editingOrganization) {
-        await apiClient.request(`/organizations/${editingOrganization.id}`, {
-          method: 'PUT',
-          body: JSON.stringify(requestData)
-        });
+        await apiClient.updateOrganization(editingOrganization.id, requestData);
         setShowEditModal(false);
       } else {
-        await apiClient.request('/organizations', {
-          method: 'POST',
-          body: JSON.stringify(requestData)
-        });
+        await apiClient.createOrganization(requestData);
         setShowAddModal(false);
       }
 
@@ -290,53 +272,8 @@ const OrganizationManagementPage: React.FC = () => {
     }
   };
 
-  const addClearanceRequirement = () => {
-    setFormData(prev => ({
-      ...prev,
-      clearanceRequirements: [
-        ...prev.clearanceRequirements,
-        {
-          clearance_type_id: '',
-          is_required: true,
-          custom_validity_months: undefined,
-          notes: ''
-        }
-      ]
-    }));
-  };
-
-  const updateClearanceRequirement = (index: number, field: string, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      clearanceRequirements: prev.clearanceRequirements.map((req, i) =>
-        i === index ? { ...req, [field]: value } : req
-      )
-    }));
-  };
-
-  const removeClearanceRequirement = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      clearanceRequirements: prev.clearanceRequirements.filter((_, i) => i !== index)
-    }));
-  };
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString();
-  };
-
-  const getClearanceTypeName = (clearanceTypeId: string) => {
-    const clearanceType = clearanceTypes.find(ct => ct.id === clearanceTypeId);
-    return clearanceType ? clearanceType.name : 'Unknown';
-  };
-
-  const getCategoryColor = (category: string) => {
-    const colors = {
-      'background_check': 'bg-red-100 text-red-800',
-      'certification': 'bg-blue-100 text-blue-800',
-      'training': 'bg-green-100 text-green-800'
-    };
-    return colors[category as keyof typeof colors] || 'bg-gray-100 text-gray-800';
   };
 
   if (loading) {
@@ -442,8 +379,8 @@ const OrganizationManagementPage: React.FC = () => {
           <div className="flex items-center">
             <Award className="h-8 w-8 text-green-600" />
             <div className="ml-3">
-              <p className="text-sm font-medium text-gray-500">Clearance Types</p>
-              <p className="text-2xl font-semibold text-gray-900">{clearanceTypes.length}</p>
+              <p className="text-sm font-medium text-gray-500">Require Clearance</p>
+              <p className="text-2xl font-semibold text-gray-900">{organizations.filter(org => org.requires_clearance).length}</p>
             </div>
           </div>
         </div>
@@ -519,7 +456,7 @@ const OrganizationManagementPage: React.FC = () => {
                     <div className="flex items-center">
                       <Shield className="h-4 w-4 text-amber-600 mr-2" />
                       <span className="text-sm text-gray-900">
-                        {org.required_clearances_count} clearances
+                        {org.requires_clearance ? 'Clearance Required' : 'No Clearance Required'}
                       </span>
                     </div>
                   </td>
@@ -648,89 +585,33 @@ const OrganizationManagementPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Clearance Requirements */}
+                {/* Clearance Requirement */}
                 <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-lg font-medium text-gray-900">Clearance Requirements</h3>
-                    <button
-                      type="button"
-                      onClick={addClearanceRequirement}
-                      className="bg-blue-600 text-white px-3 py-1 rounded-md hover:bg-blue-700 flex items-center space-x-1 text-sm"
-                    >
-                      <Plus className="h-3 w-3" />
-                      <span>Add Requirement</span>
-                    </button>
+                  <h3 className="text-lg font-medium text-gray-900 mb-3">Clearance Requirement</h3>
+                  <div className="space-y-2">
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        name="requiresClearance"
+                        value="true"
+                        checked={formData.requiresClearance === true}
+                        onChange={() => setFormData(prev => ({ ...prev, requiresClearance: true }))}
+                        className="mr-2 text-amber-600 focus:ring-amber-500"
+                      />
+                      <span className="text-sm text-gray-700">Yes, this organization requires teacher clearance</span>
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        name="requiresClearance"
+                        value="false"
+                        checked={formData.requiresClearance === false}
+                        onChange={() => setFormData(prev => ({ ...prev, requiresClearance: false }))}
+                        className="mr-2 text-amber-600 focus:ring-amber-500"
+                      />
+                      <span className="text-sm text-gray-700">No clearance required</span>
+                    </label>
                   </div>
-                  
-                  {formData.clearanceRequirements.map((req, index) => (
-                    <div key={index} className="border border-gray-200 rounded-md p-4 mb-3">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Clearance Type *
-                          </label>
-                          <select
-                            required
-                            value={req.clearance_type_id}
-                            onChange={(e) => updateClearanceRequirement(index, 'clearance_type_id', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                          >
-                            <option value="">Select clearance type...</option>
-                            {clearanceTypes.map(ct => (
-                              <option key={ct.id} value={ct.id}>
-                                {ct.name} ({ct.category})
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Custom Validity (months)
-                          </label>
-                          <input
-                            type="number"
-                            min="1"
-                            value={req.custom_validity_months || ''}
-                            onChange={(e) => updateClearanceRequirement(index, 'custom_validity_months', 
-                              e.target.value ? parseInt(e.target.value) : undefined)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                            placeholder="Use default"
-                          />
-                        </div>
-                        
-                        <div className="flex items-end">
-                          <button
-                            type="button"
-                            onClick={() => removeClearanceRequirement(index)}
-                            className="w-full bg-red-600 text-white px-3 py-2 rounded-md hover:bg-red-700 flex items-center justify-center space-x-1"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                            <span>Remove</span>
-                          </button>
-                        </div>
-                      </div>
-                      
-                      <div className="mt-3">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Notes
-                        </label>
-                        <input
-                          type="text"
-                          value={req.notes || ''}
-                          onChange={(e) => updateClearanceRequirement(index, 'notes', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                          placeholder="Optional notes about this requirement..."
-                        />
-                      </div>
-                    </div>
-                  ))}
-                  
-                  {formData.clearanceRequirements.length === 0 && (
-                    <p className="text-gray-500 text-sm italic">
-                      No clearance requirements added. Click "Add Requirement" to specify what clearances teachers need for this organization.
-                    </p>
-                  )}
                 </div>
 
                 {/* Form Actions */}
