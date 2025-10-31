@@ -1540,11 +1540,11 @@ router.get('/organizations', authenticateFlexible, async (req, res) => {
     const organizationsQuery = `
       SELECT 
         o.*,
-        COUNT(DISTINCT ocr.id) as required_clearances_count,
-        COUNT(DISTINCT p.id) as programs_count
+        COUNT(DISTINCT p.id) as programs_count,
+        COUNT(DISTINCT toc.id) as teachers_with_clearance
       FROM organizations o
-      LEFT JOIN organization_clearance_requirements ocr ON o.id = ocr.organization_id
       LEFT JOIN programs p ON o.id = p.organization_id AND p.is_active = true
+      LEFT JOIN teacher_organization_clearances toc ON o.id = toc.organization_id AND toc.clearance_status = 'cleared'
       WHERE o.is_active = true
       GROUP BY o.id
       ORDER BY o.name
@@ -1600,7 +1600,7 @@ router.get('/organizations/:id', authenticateFlexible, async (req, res) => {
 // Create new organization
 router.post('/organizations', authenticateFlexible, async (req, res) => {
   try {
-    const { name, catalogCode, address, phone, email, website, clearanceRequirements } = req.body;
+    const { name, catalogCode, address, phone, email, website, requiresClearance } = req.body;
 
     if (!name || !catalogCode) {
       return res.status(400).json({ error: 'Name and catalog code are required' });
@@ -1618,25 +1618,11 @@ router.post('/organizations', authenticateFlexible, async (req, res) => {
 
     // Create organization
     const orgResult = await query(
-      `INSERT INTO organizations (name, catalog_code, address, phone, email, website, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+      `INSERT INTO organizations (name, catalog_code, address, phone, email, website, requires_clearance, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
        RETURNING *`,
-      [name, catalogCode, address, phone, email, website]
+      [name, catalogCode, address, phone, email, website, requiresClearance || false]
     );
-
-    const organizationId = orgResult.rows[0].id;
-
-    // Add clearance requirements if provided
-    if (clearanceRequirements && clearanceRequirements.length > 0) {
-      for (const req of clearanceRequirements) {
-        await query(
-          `INSERT INTO organization_clearance_requirements 
-           (organization_id, clearance_type_id, is_required, custom_validity_months, notes)
-           VALUES ($1, $2, $3, $4, $5)`,
-          [organizationId, req.clearanceTypeId, req.isRequired || true, req.customValidityMonths, req.notes]
-        );
-      }
-    }
 
     console.log('✅ Created organization:', name);
     res.status(201).json(orgResult.rows[0]);
@@ -1650,37 +1636,19 @@ router.post('/organizations', authenticateFlexible, async (req, res) => {
 router.put('/organizations/:id', authenticateFlexible, async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, catalogCode, address, phone, email, website, clearanceRequirements } = req.body;
+    const { name, catalogCode, address, phone, email, website, requiresClearance } = req.body;
 
     // Update organization basic info
     const updateResult = await query(
       `UPDATE organizations 
-       SET name = $1, catalog_code = $2, address = $3, phone = $4, email = $5, website = $6, updated_at = NOW()
-       WHERE id = $7 AND is_active = true
+       SET name = $1, catalog_code = $2, address = $3, phone = $4, email = $5, website = $6, requires_clearance = $7, updated_at = NOW()
+       WHERE id = $8 AND is_active = true
        RETURNING *`,
-      [name, catalogCode, address, phone, email, website, id]
+      [name, catalogCode, address, phone, email, website, requiresClearance || false, id]
     );
 
     if (updateResult.rows.length === 0) {
       return res.status(404).json({ error: 'Organization not found' });
-    }
-
-    // Update clearance requirements if provided
-    if (clearanceRequirements !== undefined) {
-      // Remove existing requirements
-      await query('DELETE FROM organization_clearance_requirements WHERE organization_id = $1', [id]);
-
-      // Add new requirements
-      if (clearanceRequirements.length > 0) {
-        for (const req of clearanceRequirements) {
-          await query(
-            `INSERT INTO organization_clearance_requirements 
-             (organization_id, clearance_type_id, is_required, custom_validity_months, notes)
-             VALUES ($1, $2, $3, $4, $5)`,
-            [id, req.clearanceTypeId, req.isRequired || true, req.customValidityMonths, req.notes]
-          );
-        }
-      }
     }
 
     res.json(updateResult.rows[0]);
@@ -1711,120 +1679,117 @@ router.delete('/organizations/:id', authenticateFlexible, async (req, res) => {
   }
 });
 
-// Get all clearance types
-router.get('/clearance-types', authenticateFlexible, async (req, res) => {
+// ==================== TEACHER CLEARANCE STATUS MANAGEMENT ====================
+
+// Get all teachers with their clearance status for all organizations
+router.get('/teachers/clearance-status', authenticateFlexible, async (req, res) => {
   try {
-    const result = await query(
-      'SELECT * FROM clearance_types ORDER BY category, name'
-    );
-    res.json(result.rows);
-  } catch (error) {
-    console.error('Get clearance types error:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Create new clearance type
-router.post('/clearance-types', authenticateFlexible, async (req, res) => {
-  try {
-    const { name, description, category, expires, defaultValidityMonths } = req.body;
-
-    if (!name) {
-      return res.status(400).json({ error: 'Name is required' });
-    }
-
-    const result = await query(
-      `INSERT INTO clearance_types (name, description, category, expires, default_validity_months, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
-       RETURNING *`,
-      [name, description, category, expires || true, defaultValidityMonths]
-    );
-
-    res.status(201).json(result.rows[0]);
-  } catch (error) {
-    console.error('Create clearance type error:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Get teacher clearances
-router.get('/teachers/:teacherId/clearances', authenticateFlexible, async (req, res) => {
-  try {
-    const { teacherId } = req.params;
-
-    const clearancesQuery = `
+    const statusQuery = `
       SELECT 
-        tc.*,
-        ct.name as clearance_name,
-        ct.description,
-        ct.category,
-        ct.expires,
-        ct.default_validity_months,
-        CASE 
-          WHEN tc.expiration_date IS NULL THEN 'permanent'
-          WHEN tc.expiration_date > CURRENT_DATE THEN 'valid'
-          ELSE 'expired'
-        END as validity_status
-      FROM teacher_clearances tc
-      JOIN clearance_types ct ON tc.clearance_type_id = ct.id
-      WHERE tc.teacher_id = $1
-      ORDER BY tc.status, tc.expiration_date DESC NULLS LAST, ct.name
+        up.id as teacher_id,
+        up.first_name,
+        up.last_name,
+        up.email,
+        o.id as organization_id,
+        o.name as organization_name,
+        o.requires_clearance,
+        COALESCE(toc.clearance_status, 'not_cleared') as clearance_status,
+        toc.notes,
+        toc.submitted_date,
+        toc.cleared_date,
+        toc.updated_at as status_updated
+      FROM user_profiles up
+      CROSS JOIN organizations o
+      LEFT JOIN teacher_organization_clearances toc ON up.id = toc.teacher_id AND o.id = toc.organization_id
+      WHERE up.profile_type = 'teacher' 
+        AND up.is_active = TRUE
+        AND o.is_active = TRUE
+      ORDER BY up.last_name, up.first_name, o.name
     `;
 
-    const result = await query(clearancesQuery, [teacherId]);
+    const result = await query(statusQuery);
     res.json(result.rows);
   } catch (error) {
-    console.error('Get teacher clearances error:', error);
+    console.error('Get teacher clearance status error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// Add teacher clearance
-router.post('/teachers/:teacherId/clearances', authenticateFlexible, async (req, res) => {
+// Get clearance status for a specific teacher across all organizations
+router.get('/teachers/:teacherId/clearance-status', authenticateFlexible, async (req, res) => {
   try {
     const { teacherId } = req.params;
-    const { 
-      clearanceTypeId, 
-      issuedDate, 
-      expirationDate, 
-      issuingAuthority, 
-      certificateNumber, 
-      notes,
-      documentUrl 
-    } = req.body;
 
-    if (!clearanceTypeId || !issuedDate) {
-      return res.status(400).json({ error: 'Clearance type and issued date are required' });
-    }
+    const statusQuery = `
+      SELECT 
+        o.id as organization_id,
+        o.name as organization_name,
+        o.requires_clearance,
+        COALESCE(toc.clearance_status, 'not_cleared') as clearance_status,
+        toc.notes,
+        toc.submitted_date,
+        toc.cleared_date,
+        toc.updated_at as status_updated
+      FROM organizations o
+      LEFT JOIN teacher_organization_clearances toc ON o.id = toc.organization_id AND toc.teacher_id = $1
+      WHERE o.is_active = TRUE
+      ORDER BY o.name
+    `;
 
-    const result = await query(
-      `INSERT INTO teacher_clearances 
-       (teacher_id, clearance_type_id, issued_date, expiration_date, issuing_authority, 
-        certificate_number, notes, document_url, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
-       RETURNING *`,
-      [teacherId, clearanceTypeId, issuedDate, expirationDate, issuingAuthority, certificateNumber, notes, documentUrl]
-    );
-
-    res.status(201).json(result.rows[0]);
+    const result = await query(statusQuery, [teacherId]);
+    res.json(result.rows);
   } catch (error) {
-    console.error('Add teacher clearance error:', error);
+    console.error('Get teacher clearance status error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// Get teacher organization eligibility
-router.get('/teachers/eligibility', authenticateFlexible, async (req, res) => {
+// Update teacher clearance status for a specific organization
+router.put('/teachers/:teacherId/clearance-status/:organizationId', authenticateFlexible, async (req, res) => {
   try {
-    const eligibilityQuery = `
-      SELECT * FROM teacher_organization_eligibility
-      ORDER BY teacher_id, organization_name
+    const { teacherId, organizationId } = req.params;
+    const { clearanceStatus, notes } = req.body;
+
+    if (!['not_cleared', 'in_progress', 'submitted', 'cleared'].includes(clearanceStatus)) {
+      return res.status(400).json({ error: 'Invalid clearance status' });
+    }
+
+    const currentDate = new Date().toISOString().split('T')[0];
+    let submittedDate = null;
+    let clearedDate = null;
+
+    // Set appropriate dates based on status
+    if (clearanceStatus === 'submitted') {
+      submittedDate = currentDate;
+    } else if (clearanceStatus === 'cleared') {
+      clearedDate = currentDate;
+    }
+
+    const upsertQuery = `
+      INSERT INTO teacher_organization_clearances (teacher_id, organization_id, clearance_status, notes, submitted_date, cleared_date)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      ON CONFLICT (teacher_id, organization_id)
+      DO UPDATE SET 
+        clearance_status = EXCLUDED.clearance_status,
+        notes = EXCLUDED.notes,
+        submitted_date = CASE 
+          WHEN EXCLUDED.clearance_status = 'submitted' AND teacher_organization_clearances.submitted_date IS NULL 
+          THEN EXCLUDED.submitted_date 
+          ELSE teacher_organization_clearances.submitted_date 
+        END,
+        cleared_date = CASE 
+          WHEN EXCLUDED.clearance_status = 'cleared' AND teacher_organization_clearances.cleared_date IS NULL 
+          THEN EXCLUDED.cleared_date 
+          ELSE teacher_organization_clearances.cleared_date 
+        END,
+        updated_at = CURRENT_TIMESTAMP
+      RETURNING *
     `;
 
-    const result = await query(eligibilityQuery);
-    res.json(result.rows);
+    const result = await query(upsertQuery, [teacherId, organizationId, clearanceStatus, notes, submittedDate, clearedDate]);
+    res.json(result.rows[0]);
   } catch (error) {
-    console.error('Get teacher eligibility error:', error);
+    console.error('Update teacher clearance status error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

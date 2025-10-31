@@ -305,11 +305,12 @@ class ApiClient {
 
   async createOrganization(orgData: {
     name: string;
-    type: string;
-    description?: string;
-    website?: string;
+    catalogCode: string;
+    address?: string;
     phone?: string;
     email?: string;
+    website?: string;
+    requiresClearance?: boolean;
   }): Promise<any> {
     return this.request('/organizations', {
       method: 'POST',
@@ -370,55 +371,23 @@ class ApiClient {
     });
   }
 
-  // Clearances
-  async getClearanceTypes(): Promise<any> {
-    return this.request('/clearance-types');
+  // Teacher Clearance Status
+  async getTeacherClearanceStatus(): Promise<any> {
+    return this.request('/teachers/clearance-status');
   }
 
-  async createClearanceType(clearanceData: {
-    name: string;
-    description?: string;
-    category: string;
-    expires: boolean;
-    defaultValidityMonths?: number;
-  }): Promise<any> {
-    return this.request('/clearance-types', {
-      method: 'POST',
-      body: JSON.stringify(clearanceData),
-    });
+  async getTeacherClearanceStatusById(teacherId: string): Promise<any> {
+    return this.request(`/teachers/${teacherId}/clearance-status`);
   }
 
-  async getOrganizationClearanceRequirements(organizationId: string): Promise<any> {
-    return this.request(`/organizations/${organizationId}/clearance-requirements`);
-  }
-
-  async updateOrganizationClearanceRequirements(organizationId: string, requirements: any[]): Promise<any> {
-    return this.request(`/organizations/${organizationId}/clearance-requirements`, {
-      method: 'PUT',
-      body: JSON.stringify({ requirements }),
-    });
-  }
-
-  async getTeacherClearances(teacherId: string): Promise<any> {
-    return this.request(`/teachers/${teacherId}/clearances`);
-  }
-
-  async addTeacherClearance(teacherId: string, clearanceData: {
-    clearanceTypeId: string;
-    issuedDate: string;
-    expirationDate?: string;
-    issuingAuthority?: string;
-    certificateNumber?: string;
+  async updateTeacherClearanceStatus(teacherId: string, organizationId: string, statusData: {
+    clearanceStatus: 'not_cleared' | 'in_progress' | 'submitted' | 'cleared';
     notes?: string;
   }): Promise<any> {
-    return this.request(`/teachers/${teacherId}/clearances`, {
-      method: 'POST',
-      body: JSON.stringify(clearanceData),
+    return this.request(`/teachers/${teacherId}/clearance-status/${organizationId}`, {
+      method: 'PUT',
+      body: JSON.stringify(statusData),
     });
-  }
-
-  async getTeacherEligibility(): Promise<any> {
-    return this.request('/teachers/eligibility');
   }
 }
 

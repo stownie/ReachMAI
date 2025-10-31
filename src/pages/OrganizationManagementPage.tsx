@@ -27,22 +27,15 @@ interface Organization {
   phone?: string;
   email?: string;
   website?: string;
+  requires_clearance: boolean;
   is_active: boolean;
-  required_clearances_count: number;
   programs_count: number;
+  teachers_with_clearance: number;
   created_at: string;
   updated_at: string;
-  clearanceRequirements?: ClearanceRequirement[];
 }
 
-interface ClearanceType {
-  id: string;
-  name: string;
-  description?: string;
-  category: string;
-  expires: boolean;
-  default_validity_months?: number;
-}
+
 
 interface Campus {
   id: string;
@@ -63,20 +56,10 @@ interface Campus {
   updated_at: string;
 }
 
-interface ClearanceRequirement {
-  id?: string;
-  clearance_type_id: string;
-  clearance_name?: string;
-  clearance_description?: string;
-  category?: string;
-  is_required: boolean;
-  custom_validity_months?: number;
-  notes?: string;
-}
+
 
 const OrganizationManagementPage: React.FC = () => {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
-  const [clearanceTypes, setClearanceTypes] = useState<ClearanceType[]>([]);
   const [filteredOrganizations, setFilteredOrganizations] = useState<Organization[]>([]);
   const [campuses, setCampuses] = useState<Campus[]>([]);
   const [loading, setLoading] = useState(true);
@@ -97,7 +80,7 @@ const OrganizationManagementPage: React.FC = () => {
     phone: '',
     email: '',
     website: '',
-    clearanceRequirements: [] as ClearanceRequirement[]
+    requiresClearance: false
   });
 
   const [campusFormData, setCampusFormData] = useState({
@@ -129,14 +112,12 @@ const OrganizationManagementPage: React.FC = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [orgsResponse, clearanceTypesResponse, campusesResponse] = await Promise.all([
+      const [orgsResponse, campusesResponse] = await Promise.all([
         apiClient.getOrganizations(),
-        apiClient.getClearanceTypes(),
         apiClient.getAllCampuses()
       ]);
       
       setOrganizations(orgsResponse);
-      setClearanceTypes(clearanceTypesResponse);
       setCampuses(campusesResponse);
       setFilteredOrganizations(orgsResponse);
     } catch (error) {
@@ -154,7 +135,7 @@ const OrganizationManagementPage: React.FC = () => {
       phone: '',
       email: '',
       website: '',
-      clearanceRequirements: []
+      requiresClearance: false
     });
     setEditingOrganization(null);
   };
