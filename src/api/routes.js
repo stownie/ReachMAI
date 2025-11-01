@@ -1659,6 +1659,100 @@ router.delete('/organizations/:id', authenticateFlexible, async (req, res) => {
   }
 });
 
+// Get teacher clearances for a specific organization
+router.get('/organizations/:organizationId/teacher-clearances', authenticateFlexible, async (req, res) => {
+  try {
+    const { organizationId } = req.params;
+
+    const clearancesQuery = `
+      SELECT 
+        up.id as teacher_id,
+        up.first_name,
+        up.last_name,
+        up.email,
+        COALESCE(toc.clearance_status, 'not_cleared') as clearance_status,
+        toc.notes,
+        toc.submitted_date,
+        toc.cleared_date,
+        toc.updated_at as status_updated
+      FROM user_profiles up
+      JOIN auth_accounts aa ON up.account_id = aa.id
+      LEFT JOIN teacher_organization_clearances toc ON up.id = toc.teacher_id AND toc.organization_id = $1
+      WHERE up.profile_type = 'teacher'
+      AND EXISTS (
+        SELECT 1 FROM teacher_organization_clearances toc2 
+        WHERE toc2.teacher_id = up.id AND toc2.organization_id = $1
+      )
+      ORDER BY up.last_name, up.first_name
+    `;
+
+    const result = await query(clearancesQuery, [organizationId]);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Get organization teacher clearances error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Assign teacher to organization
+router.post('/organizations/:organizationId/assign-teacher', authenticateFlexible, async (req, res) => {
+  try {
+    const { organizationId } = req.params;
+    const { teacherId } = req.body;
+
+    if (!teacherId) {
+      return res.status(400).json({ error: 'Teacher ID is required' });
+    }
+
+    // Check if teacher exists and is a teacher
+    const teacherCheck = await query(
+      'SELECT id FROM user_profiles WHERE id = $1 AND profile_type = $2',
+      [teacherId, 'teacher']
+    );
+
+    if (teacherCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Teacher not found' });
+    }
+
+    // Check if organization exists
+    const orgCheck = await query(
+      'SELECT id FROM organizations WHERE id = $1 AND is_active = true',
+      [organizationId]
+    );
+
+    if (orgCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    // Check if assignment already exists
+    const existingAssignment = await query(
+      'SELECT id FROM teacher_organization_clearances WHERE teacher_id = $1 AND organization_id = $2',
+      [teacherId, organizationId]
+    );
+
+    if (existingAssignment.rows.length > 0) {
+      return res.status(400).json({ error: 'Teacher is already assigned to this organization' });
+    }
+
+    // Create the assignment with initial status
+    const result = await query(
+      `INSERT INTO teacher_organization_clearances 
+       (teacher_id, organization_id, clearance_status, created_at) 
+       VALUES ($1, $2, 'not_cleared', NOW()) 
+       RETURNING *`,
+      [teacherId, organizationId]
+    );
+
+    res.json({
+      message: 'Teacher assigned successfully',
+      assignment: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Assign teacher error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // ==================== TEACHER CLEARANCE STATUS MANAGEMENT ====================
 
 // Get all teachers with their clearance status for all organizations
