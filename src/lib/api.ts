@@ -389,6 +389,17 @@ class ApiClient {
       body: JSON.stringify(statusData),
     });
   }
+
+  async getOrganizationTeacherClearances(organizationId: string): Promise<any[]> {
+    return this.request(`/organizations/${organizationId}/teacher-clearances`);
+  }
+
+  async assignTeacherToOrganization(teacherId: string, organizationId: string): Promise<any> {
+    return this.request(`/organizations/${organizationId}/assign-teacher`, {
+      method: 'POST',
+      body: JSON.stringify({ teacherId }),
+    });
+  }
 }
 
 // Create singleton instance

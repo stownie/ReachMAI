@@ -11,7 +11,8 @@ import {
   Globe, 
   Shield,
   Award,
-  BookOpen
+  BookOpen,
+  Users
 } from 'lucide-react';
 import { apiClient } from '../lib/api';
 
@@ -52,7 +53,299 @@ interface Campus {
   updated_at: string;
 }
 
+// Teacher Clearance Status Component
+const TeacherClearanceStatus: React.FC<{ organizationId: string; requiresClearance: boolean }> = ({ 
+  organizationId, 
+  requiresClearance 
+}) => {
+  const [teacherClearances, setTeacherClearances] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    const fetchTeacherClearances = async () => {
+      if (!requiresClearance) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const clearances = await apiClient.getOrganizationTeacherClearances(organizationId);
+        setTeacherClearances(clearances);
+      } catch (error) {
+        console.error('Error fetching teacher clearances:', error);
+        setTeacherClearances([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTeacherClearances();
+  }, [organizationId, requiresClearance]);
+
+  if (!requiresClearance) {
+    return (
+      <span className="text-sm text-gray-500 italic">
+        No clearance required
+      </span>
+    );
+  }
+
+  if (loading) {
+    return (
+      <span className="text-sm text-gray-500">
+        Loading...
+      </span>
+    );
+  }
+
+  if (teacherClearances.length === 0) {
+    return (
+      <span className="text-sm text-gray-500">
+        No teachers assigned
+      </span>
+    );
+  }
+
+  const statusColors = {
+    not_cleared: 'bg-red-100 text-red-800',
+    in_progress: 'bg-yellow-100 text-yellow-800',
+    submitted: 'bg-blue-100 text-blue-800',
+    cleared: 'bg-green-100 text-green-800'
+  };
+
+  const statusCounts = teacherClearances.reduce((acc, clearance) => {
+    const status = clearance.clearance_status as string;
+    acc[status] = (acc[status] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  return (
+    <div className="space-y-1">
+      <div className="text-xs text-gray-600 font-medium">
+        {teacherClearances.length} teacher{teacherClearances.length !== 1 ? 's' : ''}
+      </div>
+      <div className="flex flex-wrap gap-1">
+        {Object.entries(statusCounts).map(([status, count]) => (
+          <span
+            key={status}
+            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+              statusColors[status as keyof typeof statusColors]
+            }`}
+          >
+            {count as number} {status.replace('_', ' ')}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// Teacher Assignment Modal Component
+const TeacherAssignmentModal: React.FC<{
+  organization: Organization;
+  onClose: () => void;
+  onUpdate: () => void;
+}> = ({ organization, onClose, onUpdate }) => {
+  const [teachers, setTeachers] = useState<any[]>([]);
+  const [assignedTeachers, setAssignedTeachers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [allTeachers, orgClearances] = await Promise.all([
+          apiClient.getUsersByType('teacher'),
+          apiClient.getOrganizationTeacherClearances(organization.id)
+        ]);
+        
+        setTeachers(allTeachers);
+        setAssignedTeachers(orgClearances);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [organization.id]);
+
+  const handleAssignTeacher = async (teacherId: string) => {
+    setSaving(true);
+    try {
+      await apiClient.assignTeacherToOrganization(teacherId, organization.id);
+      
+      // Refresh data
+      const orgClearances = await apiClient.getOrganizationTeacherClearances(organization.id);
+      setAssignedTeachers(orgClearances);
+      onUpdate();
+    } catch (error) {
+      console.error('Error assigning teacher:', error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleUpdateClearanceStatus = async (teacherId: string, status: string) => {
+    setSaving(true);
+    try {
+      await apiClient.updateTeacherClearanceStatus(teacherId, organization.id, {
+        clearanceStatus: status as 'not_cleared' | 'in_progress' | 'submitted' | 'cleared'
+      });
+      
+      // Refresh data
+      const orgClearances = await apiClient.getOrganizationTeacherClearances(organization.id);
+      setAssignedTeachers(orgClearances);
+      onUpdate();
+    } catch (error) {
+      console.error('Error updating clearance status:', error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const assignedTeacherIds = new Set(assignedTeachers.map(at => at.user_id));
+  const availableTeachers = teachers.filter(teacher => !assignedTeacherIds.has(teacher.user_id));
+
+  const statusOptions = [
+    { value: 'not_cleared', label: 'Not Cleared', color: 'bg-red-100 text-red-800' },
+    { value: 'in_progress', label: 'In Progress', color: 'bg-yellow-100 text-yellow-800' },
+    { value: 'submitted', label: 'Submitted', color: 'bg-blue-100 text-blue-800' },
+    { value: 'cleared', label: 'Cleared', color: 'bg-green-100 text-green-800' }
+  ];
+
+  if (loading) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="bg-white rounded-lg p-6">
+          <div className="text-center">Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-semibold text-gray-900">
+              Manage Teachers - {organization.name}
+            </h2>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              ✕
+            </button>
+          </div>
+
+          {!organization.requires_clearance && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4 mb-6">
+              <div className="text-yellow-800">
+                <strong>Note:</strong> This organization does not require teacher clearances.
+              </div>
+            </div>
+          )}
+
+          {/* Assigned Teachers */}
+          <div className="mb-8">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              Assigned Teachers ({assignedTeachers.length})
+            </h3>
+            
+            {assignedTeachers.length === 0 ? (
+              <p className="text-gray-500 italic">No teachers assigned to this organization yet.</p>
+            ) : (
+              <div className="space-y-3">
+                {assignedTeachers.map((clearance) => (
+                  <div key={clearance.user_id} className="border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-medium text-gray-900">
+                          {clearance.first_name} {clearance.last_name}
+                        </div>
+                        <div className="text-sm text-gray-500">{clearance.email}</div>
+                      </div>
+                      
+                      {organization.requires_clearance && (
+                        <div className="flex items-center space-x-3">
+                          <span className="text-sm text-gray-600">Status:</span>
+                          <select
+                            value={clearance.clearance_status}
+                            onChange={(e) => handleUpdateClearanceStatus(clearance.user_id, e.target.value)}
+                            disabled={saving}
+                            className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-amber-500"
+                          >
+                            {statusOptions.map(option => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
+                          
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                            statusOptions.find(s => s.value === clearance.clearance_status)?.color
+                          }`}>
+                            {statusOptions.find(s => s.value === clearance.clearance_status)?.label}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Available Teachers */}
+          <div>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              Available Teachers ({availableTeachers.length})
+            </h3>
+            
+            {availableTeachers.length === 0 ? (
+              <p className="text-gray-500 italic">All teachers are already assigned to this organization.</p>
+            ) : (
+              <div className="space-y-3">
+                {availableTeachers.map((teacher) => (
+                  <div key={teacher.user_id} className="border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-medium text-gray-900">
+                          {teacher.first_name} {teacher.last_name}
+                        </div>
+                        <div className="text-sm text-gray-500">{teacher.email}</div>
+                      </div>
+                      
+                      <button
+                        onClick={() => handleAssignTeacher(teacher.user_id)}
+                        disabled={saving}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                      >
+                        {saving ? 'Assigning...' : 'Assign'}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-end mt-6 pt-6 border-t border-gray-200">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const OrganizationManagementPage: React.FC = () => {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
@@ -68,6 +361,8 @@ const OrganizationManagementPage: React.FC = () => {
   const [editingOrganization, setEditingOrganization] = useState<Organization | null>(null);
   const [editingCampus, setEditingCampus] = useState<Campus | null>(null);
   const [selectedOrganizationForCampus, setSelectedOrganizationForCampus] = useState<string>('');
+  const [showTeacherAssignmentModal, setShowTeacherAssignmentModal] = useState(false);
+  const [selectedOrganizationForTeachers, setSelectedOrganizationForTeachers] = useState<Organization | null>(null);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -170,6 +465,11 @@ const OrganizationManagementPage: React.FC = () => {
     } catch (error) {
       console.error('Failed to delete organization:', error);
     }
+  };
+
+  const handleAssignTeachers = (org: Organization) => {
+    setSelectedOrganizationForTeachers(org);
+    setShowTeacherAssignmentModal(true);
   };
 
   // Campus Management Functions
@@ -402,6 +702,9 @@ const OrganizationManagementPage: React.FC = () => {
                   Requirements
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Teacher Clearances
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Programs
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -460,6 +763,9 @@ const OrganizationManagementPage: React.FC = () => {
                       </span>
                     </div>
                   </td>
+                  <td className="px-6 py-4">
+                    <TeacherClearanceStatus organizationId={org.id} requiresClearance={org.requires_clearance} />
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <BookOpen className="h-4 w-4 text-blue-600 mr-2" />
@@ -473,6 +779,13 @@ const OrganizationManagementPage: React.FC = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex items-center justify-end space-x-2">
+                      <button
+                        onClick={() => handleAssignTeachers(org)}
+                        className="text-blue-600 hover:text-blue-900 p-1 rounded-md hover:bg-blue-50"
+                        title="Assign Teachers"
+                      >
+                        <Users className="h-4 w-4" />
+                      </button>
                       <button
                         onClick={() => handleEditOrganization(org)}
                         className="text-amber-600 hover:text-amber-900 p-1 rounded-md hover:bg-amber-50"
@@ -1085,6 +1398,18 @@ const OrganizationManagementPage: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Teacher Assignment Modal */}
+      {showTeacherAssignmentModal && selectedOrganizationForTeachers && (
+        <TeacherAssignmentModal
+          organization={selectedOrganizationForTeachers}
+          onClose={() => {
+            setShowTeacherAssignmentModal(false);
+            setSelectedOrganizationForTeachers(null);
+          }}
+          onUpdate={() => loadData()}
+        />
       )}
     </div>
   );
