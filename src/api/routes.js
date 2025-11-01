@@ -689,6 +689,29 @@ router.get('/notifications', authenticateToken, async (req, res) => {
 router.get('/users', authenticateFlexible, async (req, res) => {
   try {
     // User is authenticated, no additional permission check needed
+    const { type } = req.query;
+
+    // If type is specified, return simplified format for that profile type
+    if (type) {
+      const typeQuery = `
+        SELECT 
+          up.id,
+          up.first_name,
+          up.last_name,
+          up.email,
+          up.phone,
+          up.profile_type,
+          up.is_active,
+          aa.email as account_email
+        FROM user_profiles up
+        JOIN auth_accounts aa ON up.account_id = aa.id
+        WHERE up.profile_type = $1 AND up.is_active = true
+        ORDER BY up.last_name, up.first_name
+      `;
+      
+      const result = await query(typeQuery, [type]);
+      return res.json(result.rows);
+    }
 
     const usersQuery = `
       SELECT 

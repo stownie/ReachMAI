@@ -205,8 +205,16 @@ const TeacherAssignmentModal: React.FC<{
     }
   };
 
-  const assignedTeacherIds = new Set(assignedTeachers.map(at => at.user_id));
-  const availableTeachers = teachers.filter(teacher => !assignedTeacherIds.has(teacher.user_id));
+  // Normalize teacher objects returned from the users endpoint so we have a consistent shape
+  const normalizedTeachers = teachers.map(t => ({
+    id: t.profile_id ?? t.id ?? t.profile_id,
+    first_name: t.first_name || t.firstName || t.preferred_name || '',
+    last_name: t.last_name || t.lastName || '',
+    email: t.profile_email ?? t.email ?? t.account_email ?? ''
+  }));
+
+  const assignedTeacherIds = new Set(assignedTeachers.map(at => at.teacher_id));
+  const availableTeachers = normalizedTeachers.filter(teacher => !assignedTeacherIds.has(teacher.id));
 
   const statusOptions = [
     { value: 'not_cleared', label: 'Not Cleared', color: 'bg-red-100 text-red-800' },
@@ -260,7 +268,7 @@ const TeacherAssignmentModal: React.FC<{
             ) : (
               <div className="space-y-3">
                 {assignedTeachers.map((clearance) => (
-                  <div key={clearance.user_id} className="border border-gray-200 rounded-lg p-4">
+                  <div key={clearance.teacher_id} className="border border-gray-200 rounded-lg p-4">
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="font-medium text-gray-900">
@@ -274,7 +282,7 @@ const TeacherAssignmentModal: React.FC<{
                           <span className="text-sm text-gray-600">Status:</span>
                           <select
                             value={clearance.clearance_status}
-                            onChange={(e) => handleUpdateClearanceStatus(clearance.user_id, e.target.value)}
+                            onChange={(e) => handleUpdateClearanceStatus(clearance.teacher_id, e.target.value)}
                             disabled={saving}
                             className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-amber-500"
                           >
@@ -310,7 +318,7 @@ const TeacherAssignmentModal: React.FC<{
             ) : (
               <div className="space-y-3">
                 {availableTeachers.map((teacher) => (
-                  <div key={teacher.user_id} className="border border-gray-200 rounded-lg p-4">
+                  <div key={teacher.id} className="border border-gray-200 rounded-lg p-4">
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="font-medium text-gray-900">
@@ -320,7 +328,7 @@ const TeacherAssignmentModal: React.FC<{
                       </div>
                       
                       <button
-                        onClick={() => handleAssignTeacher(teacher.user_id)}
+                        onClick={() => handleAssignTeacher(teacher.id)}
                         disabled={saving}
                         className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
                       >
