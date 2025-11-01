@@ -2214,4 +2214,113 @@ router.delete('/campuses/:campusId/contacts/:contactId', authenticateFlexible, a
   }
 });
 
+// ==================== CAMPUS ROOMS MANAGEMENT ====================
+
+// Get campus rooms
+router.get('/campuses/:campusId/rooms', authenticateFlexible, async (req, res) => {
+  try {
+    const { campusId } = req.params;
+
+    const result = await query(
+      'SELECT * FROM campus_rooms WHERE campus_id = $1 ORDER BY name',
+      [campusId]
+    );
+
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Get campus rooms error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Create campus room
+router.post('/campuses/:campusId/rooms', authenticateFlexible, async (req, res) => {
+  try {
+    const { campusId } = req.params;
+    const { name, room_type, capacity, equipment, notes } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: 'Room name is required' });
+    }
+
+    // Check if campus exists
+    const campusCheck = await query(
+      'SELECT id FROM campuses WHERE id = $1',
+      [campusId]
+    );
+
+    if (campusCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Campus not found' });
+    }
+
+    const result = await query(
+      `INSERT INTO campus_rooms (campus_id, name, room_type, capacity, equipment, notes, created_at, updated_at) 
+       VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW()) 
+       RETURNING *`,
+      [campusId, name.trim(), room_type, capacity, equipment, notes]
+    );
+
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Create campus room error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Update campus room
+router.put('/campuses/:campusId/rooms/:roomId', authenticateFlexible, async (req, res) => {
+  try {
+    const { campusId, roomId } = req.params;
+    const { name, room_type, capacity, equipment, notes, is_active } = req.body;
+
+    if (name !== undefined && (!name || !name.trim())) {
+      return res.status(400).json({ error: 'Room name cannot be empty' });
+    }
+
+    const result = await query(
+      `UPDATE campus_rooms 
+       SET name = COALESCE($3, name),
+           room_type = COALESCE($4, room_type),
+           capacity = COALESCE($5, capacity),
+           equipment = COALESCE($6, equipment),
+           notes = COALESCE($7, notes),
+           is_active = COALESCE($8, is_active),
+           updated_at = NOW()
+       WHERE id = $1 AND campus_id = $2 
+       RETURNING *`,
+      [roomId, campusId, name?.trim(), room_type, capacity, equipment, notes, is_active]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Room not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Update campus room error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Delete campus room
+router.delete('/campuses/:campusId/rooms/:roomId', authenticateFlexible, async (req, res) => {
+  try {
+    const { campusId, roomId } = req.params;
+
+    const result = await query(
+      'DELETE FROM campus_rooms WHERE id = $1 AND campus_id = $2 RETURNING *',
+      [roomId, campusId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Room not found' });
+    }
+
+    res.json({ message: 'Room deleted successfully' });
+  } catch (error) {
+    console.error('Delete campus room error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 export default router;

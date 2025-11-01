@@ -12,7 +12,9 @@ import {
   Shield,
   Award,
   BookOpen,
-  Users
+  Users,
+  Home,
+  X
 } from 'lucide-react';
 import { apiClient } from '../lib/api';
 
@@ -39,6 +41,19 @@ interface CampusContact {
   email: string;
 }
 
+interface CampusRoom {
+  id: string;
+  campus_id: string;
+  name: string;
+  room_type?: string;
+  capacity?: number;
+  equipment?: string;
+  notes?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 interface Campus {
   id: string;
   organization_id: string;
@@ -55,6 +70,7 @@ interface Campus {
   is_active: boolean;
   organization_name?: string;
   contacts?: CampusContact[];
+  rooms?: CampusRoom[];
   created_at: string;
   updated_at: string;
 }
@@ -477,6 +493,17 @@ const OrganizationManagementPage: React.FC = () => {
     requiresClearance: false
   });
 
+  // Room management state
+  const [showRoomModal, setShowRoomModal] = useState(false);
+  const [editingRoom, setEditingRoom] = useState<CampusRoom | null>(null);
+  const [selectedCampusForRooms, setSelectedCampusForRooms] = useState<Campus | null>(null);
+  const [roomFormData, setRoomFormData] = useState({
+    name: '',
+    capacity: '',
+    equipment: '',
+    room_type: ''
+  });
+
   const [campusFormData, setCampusFormData] = useState({
     name: '',
     addressLine1: '',
@@ -512,8 +539,21 @@ const OrganizationManagementPage: React.FC = () => {
         apiClient.getAllCampuses()
       ]);
       
+      // Fetch rooms for each campus
+      const campusesWithRooms = await Promise.all(
+        campusesResponse.map(async (campus: Campus) => {
+          try {
+            const rooms = await apiClient.getCampusRooms(campus.id);
+            return { ...campus, rooms };
+          } catch (error) {
+            console.error(`Failed to load rooms for campus ${campus.id}:`, error);
+            return { ...campus, rooms: [] };
+          }
+        })
+      );
+      
       setOrganizations(orgsResponse);
-      setCampuses(campusesResponse);
+      setCampuses(campusesWithRooms);
       setFilteredOrganizations(orgsResponse);
     } catch (error) {
       console.error('Failed to load data:', error);
@@ -704,6 +744,73 @@ const OrganizationManagementPage: React.FC = () => {
       ...prev,
       contacts: prev.contacts.filter((_, i) => i !== index)
     }));
+  };
+
+  // Room Management Functions
+  const handleManageRooms = (campus: Campus) => {
+    setSelectedCampusForRooms(campus);
+    setShowRoomModal(true);
+  };
+
+
+
+  const handleEditRoom = (room: CampusRoom) => {
+    setEditingRoom(room);
+    setRoomFormData({
+      name: room.name,
+      capacity: room.capacity?.toString() || '',
+      equipment: room.equipment || '',
+      room_type: room.room_type || ''
+    });
+  };
+
+  const handleSaveRoom = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedCampusForRooms) return;
+
+    try {
+      const roomData = {
+        name: roomFormData.name,
+        capacity: roomFormData.capacity ? parseInt(roomFormData.capacity) : undefined,
+        equipment: roomFormData.equipment || undefined,
+        room_type: roomFormData.room_type || undefined
+      };
+
+      if (editingRoom) {
+        await apiClient.updateCampusRoom(selectedCampusForRooms.id, editingRoom.id, roomData);
+      } else {
+        await apiClient.createCampusRoom(selectedCampusForRooms.id, roomData);
+      }
+
+      // Reset form and refresh data
+      setRoomFormData({
+        name: '',
+        capacity: '',
+        equipment: '',
+        room_type: ''
+      });
+      setEditingRoom(null);
+      
+      // Refresh campus data to show updated rooms
+      loadData();
+    } catch (error) {
+      console.error('Error saving room:', error);
+      alert('Error saving room. Please try again.');
+    }
+  };
+
+  const handleDeleteRoom = async (roomId: string) => {
+    if (!selectedCampusForRooms) return;
+    
+    if (confirm('Are you sure you want to delete this room?')) {
+      try {
+        await apiClient.deleteCampusRoom(selectedCampusForRooms.id, roomId);
+        loadData(); // Refresh data
+      } catch (error) {
+        console.error('Error deleting room:', error);
+        alert('Error deleting room. Please try again.');
+      }
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -1223,6 +1330,13 @@ const OrganizationManagementPage: React.FC = () => {
                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <div className="flex items-center justify-end space-x-2">
                               <button
+                                onClick={() => handleManageRooms(campus)}
+                                className="text-blue-600 hover:text-blue-900 p-1 rounded-md hover:bg-blue-50"
+                                title="Manage Rooms"
+                              >
+                                <Home className="h-4 w-4" />
+                              </button>
+                              <button
                                 onClick={() => handleEditCampus(campus)}
                                 className="text-amber-600 hover:text-amber-900 p-1 rounded-md hover:bg-amber-50"
                               >
@@ -1712,6 +1826,151 @@ const OrganizationManagementPage: React.FC = () => {
           }}
           onUpdate={() => loadData()}
         />
+      )}
+
+      {/* Room Management Modal */}
+      {showRoomModal && selectedCampusForRooms && (
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium text-gray-900">
+                Manage Rooms - {selectedCampusForRooms.name}
+              </h3>
+              <button
+                onClick={() => {
+                  setShowRoomModal(false);
+                  setSelectedCampusForRooms(null);
+                  setEditingRoom(null);
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            {/* Room Form */}
+            <form onSubmit={handleSaveRoom} className="mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Room Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={roomFormData.name}
+                    onChange={(e) => setRoomFormData(prev => ({ ...prev, name: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Capacity
+                  </label>
+                  <input
+                    type="number"
+                    value={roomFormData.capacity}
+                    onChange={(e) => setRoomFormData(prev => ({ ...prev, capacity: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    min="1"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Room Type
+                  </label>
+                  <select
+                    value={roomFormData.room_type}
+                    onChange={(e) => setRoomFormData(prev => ({ ...prev, room_type: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  >
+                    <option value="">Select room type</option>
+                    <option value="classroom">Classroom</option>
+                    <option value="laboratory">Laboratory</option>
+                    <option value="office">Office</option>
+                    <option value="meeting">Meeting Room</option>
+                    <option value="auditorium">Auditorium</option>
+                    <option value="library">Library</option>
+                    <option value="cafeteria">Cafeteria</option>
+                    <option value="gym">Gymnasium</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Equipment
+                  </label>
+                  <input
+                    type="text"
+                    value={roomFormData.equipment}
+                    onChange={(e) => setRoomFormData(prev => ({ ...prev, equipment: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    placeholder="e.g., Projector, Whiteboard, Computers"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end mt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingRoom(null);
+                    setRoomFormData({ name: '', capacity: '', equipment: '', room_type: '' });
+                  }}
+                  className="mr-2 px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300"
+                >
+                  Clear
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700"
+                >
+                  {editingRoom ? 'Update Room' : 'Add Room'}
+                </button>
+              </div>
+            </form>
+
+            {/* Rooms List */}
+            <div className="border-t pt-4">
+              <h4 className="text-md font-medium text-gray-900 mb-3">Current Rooms</h4>
+              {selectedCampusForRooms.rooms && selectedCampusForRooms.rooms.length > 0 ? (
+                <div className="space-y-2">
+                  {selectedCampusForRooms.rooms.map((room) => (
+                    <div key={room.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-md">
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-900">{room.name}</div>
+                        <div className="text-sm text-gray-600">
+                          {room.room_type && <span className="capitalize">{room.room_type}</span>}
+                          {room.capacity && <span> • Capacity: {room.capacity}</span>}
+                          {room.equipment && <span> • Equipment: {room.equipment}</span>}
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => handleEditRoom(room)}
+                          className="text-amber-600 hover:text-amber-900 p-1 rounded-md hover:bg-amber-50"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteRoom(room.id)}
+                          className="text-red-600 hover:text-red-900 p-1 rounded-md hover:bg-red-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <Home className="mx-auto h-12 w-12 text-gray-400" />
+                  <p className="mt-2">No rooms found</p>
+                  <p className="text-sm">Add the first room using the form above</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

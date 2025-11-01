@@ -433,6 +433,44 @@ class ApiClient {
       method: 'DELETE',
     });
   }
+
+  // Campus Rooms
+  async getCampusRooms(campusId: string): Promise<any[]> {
+    return this.request(`/campuses/${campusId}/rooms`);
+  }
+
+  async createCampusRoom(campusId: string, roomData: {
+    name: string;
+    room_type?: string;
+    capacity?: number;
+    equipment?: string;
+    notes?: string;
+  }): Promise<any> {
+    return this.request(`/campuses/${campusId}/rooms`, {
+      method: 'POST',
+      body: JSON.stringify(roomData),
+    });
+  }
+
+  async updateCampusRoom(campusId: string, roomId: string, roomData: {
+    name?: string;
+    room_type?: string;
+    capacity?: number;
+    equipment?: string;
+    notes?: string;
+    is_active?: boolean;
+  }): Promise<any> {
+    return this.request(`/campuses/${campusId}/rooms/${roomId}`, {
+      method: 'PUT',
+      body: JSON.stringify(roomData),
+    });
+  }
+
+  async deleteCampusRoom(campusId: string, roomId: string): Promise<any> {
+    return this.request(`/campuses/${campusId}/rooms/${roomId}`, {
+      method: 'DELETE',
+    });
+  }
 }
 
 // Create singleton instance
