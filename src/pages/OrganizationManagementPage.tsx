@@ -113,28 +113,48 @@ const TeacherClearanceStatus: React.FC<{ organizationId: string; requiresClearan
     cleared: 'bg-green-100 text-green-800'
   };
 
-  const statusCounts = teacherClearances.reduce((acc, clearance) => {
+  const teachersByStatus = teacherClearances.reduce((acc, clearance) => {
     const status = clearance.clearance_status as string;
-    acc[status] = (acc[status] || 0) + 1;
+    if (!acc[status]) acc[status] = [];
+    acc[status].push(clearance);
     return acc;
-  }, {} as Record<string, number>);
+  }, {} as Record<string, any[]>);
+
+  const formatTeacherName = (clearance: any) => {
+    return `${clearance.first_name} ${clearance.last_name}`;
+  };
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-2">
       <div className="text-xs text-gray-600 font-medium">
         {teacherClearances.length} teacher{teacherClearances.length !== 1 ? 's' : ''}
       </div>
+      
+      {/* Show cleared teachers prominently */}
+      {teachersByStatus['cleared'] && teachersByStatus['cleared'].length > 0 && (
+        <div className="space-y-1">
+          <div className="text-xs font-medium text-green-700">Cleared:</div>
+          <div className="text-xs text-gray-700">
+            {teachersByStatus['cleared'].map(formatTeacherName).join(', ')}
+          </div>
+        </div>
+      )}
+      
+      {/* Show other statuses in compact badges */}
       <div className="flex flex-wrap gap-1">
-        {Object.entries(statusCounts).map(([status, count]) => (
-          <span
-            key={status}
-            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-              statusColors[status as keyof typeof statusColors]
-            }`}
-          >
-            {count as number} {status.replace('_', ' ')}
-          </span>
-        ))}
+        {Object.entries(teachersByStatus)
+          .filter(([status]) => status !== 'cleared')
+          .map(([status, teachers]) => (
+            <span
+              key={status}
+              className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                statusColors[status as keyof typeof statusColors]
+              }`}
+              title={(teachers as any[]).map(formatTeacherName).join(', ')}
+            >
+              {(teachers as any[]).length} {status.replace('_', ' ')}
+            </span>
+          ))}
       </div>
     </div>
   );
