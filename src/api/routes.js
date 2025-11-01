@@ -1908,8 +1908,23 @@ router.get('/organizations/:organizationId/campuses', authenticateFlexible, asyn
       ORDER BY c.is_primary DESC, c.name
     `;
 
-    const result = await query(campusesQuery, [organizationId]);
-    res.json(result.rows);
+    const campusesResult = await query(campusesQuery, [organizationId]);
+    
+    // Fetch contacts for each campus
+    const campusesWithContacts = await Promise.all(
+      campusesResult.rows.map(async (campus) => {
+        const contactsResult = await query(
+          'SELECT * FROM campus_contacts WHERE campus_id = $1 ORDER BY created_at',
+          [campus.id]
+        );
+        return {
+          ...campus,
+          contacts: contactsResult.rows
+        };
+      })
+    );
+
+    res.json(campusesWithContacts);
   } catch (error) {
     console.error('Get organization campuses error:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -1929,8 +1944,23 @@ router.get('/campuses', authenticateFlexible, async (req, res) => {
       ORDER BY o.name, c.is_primary DESC, c.name
     `;
 
-    const result = await query(campusesQuery);
-    res.json(result.rows);
+    const campusesResult = await query(campusesQuery);
+    
+    // Fetch contacts for each campus
+    const campusesWithContacts = await Promise.all(
+      campusesResult.rows.map(async (campus) => {
+        const contactsResult = await query(
+          'SELECT * FROM campus_contacts WHERE campus_id = $1 ORDER BY created_at',
+          [campus.id]
+        );
+        return {
+          ...campus,
+          contacts: contactsResult.rows
+        };
+      })
+    );
+
+    res.json(campusesWithContacts);
   } catch (error) {
     console.error('Get all campuses error:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -2079,6 +2109,107 @@ router.delete('/campuses/:campusId', authenticateFlexible, async (req, res) => {
     res.json({ message: 'Campus deleted successfully' });
   } catch (error) {
     console.error('Delete campus error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ==================== CAMPUS CONTACTS MANAGEMENT ====================
+
+// Get contacts for a specific campus
+router.get('/campuses/:campusId/contacts', authenticateFlexible, async (req, res) => {
+  try {
+    const { campusId } = req.params;
+
+    const result = await query(
+      'SELECT * FROM campus_contacts WHERE campus_id = $1 ORDER BY created_at',
+      [campusId]
+    );
+
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Get campus contacts error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Add contact to campus
+router.post('/campuses/:campusId/contacts', authenticateFlexible, async (req, res) => {
+  try {
+    const { campusId } = req.params;
+    const { name, phone, email } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ error: 'Contact name is required' });
+    }
+
+    // Check if campus exists
+    const campusCheck = await query(
+      'SELECT id FROM campuses WHERE id = $1 AND is_active = true',
+      [campusId]
+    );
+
+    if (campusCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Campus not found' });
+    }
+
+    const result = await query(
+      `INSERT INTO campus_contacts (campus_id, name, phone, email) 
+       VALUES ($1, $2, $3, $4) RETURNING *`,
+      [campusId, name, phone || null, email || null]
+    );
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Add campus contact error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Update campus contact
+router.put('/campuses/:campusId/contacts/:contactId', authenticateFlexible, async (req, res) => {
+  try {
+    const { campusId, contactId } = req.params;
+    const { name, phone, email } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ error: 'Contact name is required' });
+    }
+
+    const result = await query(
+      `UPDATE campus_contacts 
+       SET name = $3, phone = $4, email = $5, updated_at = CURRENT_TIMESTAMP 
+       WHERE id = $1 AND campus_id = $2 RETURNING *`,
+      [contactId, campusId, name, phone || null, email || null]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Contact not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Update campus contact error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Delete campus contact
+router.delete('/campuses/:campusId/contacts/:contactId', authenticateFlexible, async (req, res) => {
+  try {
+    const { campusId, contactId } = req.params;
+
+    const result = await query(
+      'DELETE FROM campus_contacts WHERE id = $1 AND campus_id = $2 RETURNING *',
+      [contactId, campusId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Contact not found' });
+    }
+
+    res.json({ message: 'Contact deleted successfully' });
+  } catch (error) {
+    console.error('Delete campus contact error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

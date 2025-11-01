@@ -32,7 +32,12 @@ interface Organization {
   updated_at: string;
 }
 
-
+interface CampusContact {
+  id?: string;
+  name: string;
+  phone: string;
+  email: string;
+}
 
 interface Campus {
   id: string;
@@ -49,6 +54,7 @@ interface Campus {
   is_primary: boolean;
   is_active: boolean;
   organization_name?: string;
+  contacts?: CampusContact[];
   created_at: string;
   updated_at: string;
 }
@@ -375,6 +381,75 @@ const TeacherAssignmentModal: React.FC<{
   );
 };
 
+// Campus Contacts Display Component
+const CampusContactsDisplay: React.FC<{ campusId: string }> = ({ campusId }) => {
+  const [contacts, setContacts] = useState<CampusContact[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchContacts = async () => {
+      try {
+        const campusContacts = await apiClient.getCampusContacts(campusId);
+        setContacts(campusContacts);
+      } catch (error) {
+        console.error('Error fetching campus contacts:', error);
+        setContacts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchContacts();
+  }, [campusId]);
+
+  if (loading) {
+    return (
+      <span className="text-sm text-gray-500">
+        Loading...
+      </span>
+    );
+  }
+
+  if (contacts.length === 0) {
+    return (
+      <span className="text-sm text-gray-500">
+        No contacts
+      </span>
+    );
+  }
+
+  return (
+    <div className="space-y-1">
+      {contacts.slice(0, 2).map((contact, index) => (
+        <div key={contact.id || index} className="text-sm">
+          {contact.name && (
+            <div className="font-medium text-gray-900">{contact.name}</div>
+          )}
+          <div className="text-gray-600 space-y-0.5">
+            {contact.phone && (
+              <div className="flex items-center">
+                <Phone className="h-3 w-3 text-gray-400 mr-1" />
+                {contact.phone}
+              </div>
+            )}
+            {contact.email && (
+              <div className="flex items-center">
+                <Mail className="h-3 w-3 text-gray-400 mr-1" />
+                {contact.email}
+              </div>
+            )}
+          </div>
+        </div>
+      ))}
+      {contacts.length > 2 && (
+        <div className="text-xs text-gray-500">
+          +{contacts.length - 2} more contact{contacts.length - 2 !== 1 ? 's' : ''}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const OrganizationManagementPage: React.FC = () => {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [filteredOrganizations, setFilteredOrganizations] = useState<Organization[]>([]);
@@ -412,7 +487,8 @@ const OrganizationManagementPage: React.FC = () => {
     country: 'USA',
     phone: '',
     email: '',
-    isPrimary: false
+    isPrimary: false,
+    contacts: [] as CampusContact[]
   });
 
   useEffect(() => {
@@ -512,13 +588,22 @@ const OrganizationManagementPage: React.FC = () => {
       country: 'USA',
       phone: '',
       email: '',
-      isPrimary: false
+      isPrimary: false,
+      contacts: []
     });
     setSelectedOrganizationForCampus('');
     setShowAddCampusModal(true);
   };
 
-  const handleEditCampus = (campus: Campus) => {
+  const handleEditCampus = async (campus: Campus) => {
+    // Load campus contacts when editing
+    let contacts: CampusContact[] = [];
+    try {
+      contacts = await apiClient.getCampusContacts(campus.id);
+    } catch (error) {
+      console.error('Error loading campus contacts:', error);
+    }
+
     setCampusFormData({
       name: campus.name,
       addressLine1: campus.address_line1 || '',
@@ -529,7 +614,8 @@ const OrganizationManagementPage: React.FC = () => {
       country: campus.country || 'USA',
       phone: campus.phone || '',
       email: campus.email || '',
-      isPrimary: campus.is_primary
+      isPrimary: campus.is_primary,
+      contacts: contacts
     });
     setEditingCampus(campus);
     setShowEditCampusModal(true);
@@ -552,16 +638,41 @@ const OrganizationManagementPage: React.FC = () => {
     e.preventDefault();
     
     try {
+      let campusId: string;
+      
       if (editingCampus) {
         await apiClient.updateCampus(editingCampus.id, campusFormData);
+        campusId = editingCampus.id;
         setShowEditCampusModal(false);
       } else {
         if (!selectedOrganizationForCampus) {
           alert('Please select an organization for this campus');
           return;
         }
-        await apiClient.createCampus(selectedOrganizationForCampus, campusFormData);
+        const newCampus = await apiClient.createCampus(selectedOrganizationForCampus, campusFormData);
+        campusId = newCampus.id;
         setShowAddCampusModal(false);
+      }
+
+      // Save contacts
+      if (campusId && campusFormData.contacts.length > 0) {
+        // For simplicity, we'll delete existing contacts and recreate them
+        // In a production app, you might want to do a more sophisticated diff
+        try {
+          const existingContacts = await apiClient.getCampusContacts(campusId);
+          for (const contact of existingContacts) {
+            await apiClient.deleteCampusContact(campusId, contact.id);
+          }
+        } catch (error) {
+          // Ignore errors when deleting (campus might be new)
+        }
+
+        // Create new contacts
+        for (const contact of campusFormData.contacts) {
+          if (contact.name || contact.phone || contact.email) {
+            await apiClient.createCampusContact(campusId, contact);
+          }
+        }
       }
       
       setEditingCampus(null);
@@ -569,6 +680,30 @@ const OrganizationManagementPage: React.FC = () => {
     } catch (error) {
       console.error('Failed to save campus:', error);
     }
+  };
+
+  // Contact Management Functions
+  const addContact = () => {
+    setCampusFormData(prev => ({
+      ...prev,
+      contacts: [...prev.contacts, { name: '', phone: '', email: '' }]
+    }));
+  };
+
+  const updateContact = (index: number, field: keyof CampusContact, value: string) => {
+    setCampusFormData(prev => ({
+      ...prev,
+      contacts: prev.contacts.map((contact, i) => 
+        i === index ? { ...contact, [field]: value } : contact
+      )
+    }));
+  };
+
+  const removeContact = (index: number) => {
+    setCampusFormData(prev => ({
+      ...prev,
+      contacts: prev.contacts.filter((_, i) => i !== index)
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -1073,21 +1208,8 @@ const OrganizationManagementPage: React.FC = () => {
                               {campus.country !== 'USA' && <div>{campus.country}</div>}
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">
-                              {campus.phone && (
-                                <div className="flex items-center">
-                                  <Phone className="h-3 w-3 text-gray-400 mr-1" />
-                                  {campus.phone}
-                                </div>
-                              )}
-                              {campus.email && (
-                                <div className="flex items-center">
-                                  <Mail className="h-3 w-3 text-gray-400 mr-1" />
-                                  {campus.email}
-                                </div>
-                              )}
-                            </div>
+                          <td className="px-6 py-4">
+                            <CampusContactsDisplay campusId={campus.id} />
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
@@ -1252,6 +1374,82 @@ const OrganizationManagementPage: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Campus Contacts */}
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-lg font-medium text-gray-900">Campus Contacts</h3>
+                    <button
+                      type="button"
+                      onClick={addContact}
+                      className="bg-blue-600 text-white px-3 py-1 rounded-md hover:bg-blue-700 flex items-center space-x-1 text-sm"
+                    >
+                      <Plus className="h-3 w-3" />
+                      <span>Add Contact</span>
+                    </button>
+                  </div>
+                  
+                  {campusFormData.contacts.map((contact, index) => (
+                    <div key={index} className="border border-gray-200 rounded-md p-4 mb-3">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Name
+                          </label>
+                          <input
+                            type="text"
+                            value={contact.name}
+                            onChange={(e) => updateContact(index, 'name', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                            placeholder="Contact name"
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Phone
+                          </label>
+                          <input
+                            type="tel"
+                            value={contact.phone}
+                            onChange={(e) => updateContact(index, 'phone', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                            placeholder="Phone number"
+                          />
+                        </div>
+                        
+                        <div className="flex items-end">
+                          <div className="flex-1">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Email
+                            </label>
+                            <input
+                              type="email"
+                              value={contact.email}
+                              onChange={(e) => updateContact(index, 'email', e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                              placeholder="Email address"
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeContact(index)}
+                            className="ml-2 p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md"
+                            title="Remove contact"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {campusFormData.contacts.length === 0 && (
+                    <p className="text-gray-500 text-sm italic">
+                      No contacts added. Click "Add Contact" to add contact information for this campus.
+                    </p>
+                  )}
+                </div>
+
                 <div className="flex items-center">
                   <input
                     type="checkbox"
@@ -1392,6 +1590,82 @@ const OrganizationManagementPage: React.FC = () => {
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                     />
                   </div>
+                </div>
+
+                {/* Campus Contacts */}
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-lg font-medium text-gray-900">Campus Contacts</h3>
+                    <button
+                      type="button"
+                      onClick={addContact}
+                      className="bg-blue-600 text-white px-3 py-1 rounded-md hover:bg-blue-700 flex items-center space-x-1 text-sm"
+                    >
+                      <Plus className="h-3 w-3" />
+                      <span>Add Contact</span>
+                    </button>
+                  </div>
+                  
+                  {campusFormData.contacts.map((contact, index) => (
+                    <div key={index} className="border border-gray-200 rounded-md p-4 mb-3">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Name
+                          </label>
+                          <input
+                            type="text"
+                            value={contact.name}
+                            onChange={(e) => updateContact(index, 'name', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                            placeholder="Contact name"
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Phone
+                          </label>
+                          <input
+                            type="tel"
+                            value={contact.phone}
+                            onChange={(e) => updateContact(index, 'phone', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                            placeholder="Phone number"
+                          />
+                        </div>
+                        
+                        <div className="flex items-end">
+                          <div className="flex-1">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Email
+                            </label>
+                            <input
+                              type="email"
+                              value={contact.email}
+                              onChange={(e) => updateContact(index, 'email', e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                              placeholder="Email address"
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeContact(index)}
+                            className="ml-2 p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md"
+                            title="Remove contact"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {campusFormData.contacts.length === 0 && (
+                    <p className="text-gray-500 text-sm italic">
+                      No contacts added. Click "Add Contact" to add contact information for this campus.
+                    </p>
+                  )}
                 </div>
 
                 <div className="flex items-center">

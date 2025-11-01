@@ -400,6 +400,39 @@ class ApiClient {
       body: JSON.stringify({ teacherId }),
     });
   }
+
+  // Campus Contacts
+  async getCampusContacts(campusId: string): Promise<any[]> {
+    return this.request(`/campuses/${campusId}/contacts`);
+  }
+
+  async createCampusContact(campusId: string, contactData: {
+    name?: string;
+    phone?: string;
+    email?: string;
+  }): Promise<any> {
+    return this.request(`/campuses/${campusId}/contacts`, {
+      method: 'POST',
+      body: JSON.stringify(contactData),
+    });
+  }
+
+  async updateCampusContact(campusId: string, contactId: string, contactData: {
+    name?: string;
+    phone?: string;
+    email?: string;
+  }): Promise<any> {
+    return this.request(`/campuses/${campusId}/contacts/${contactId}`, {
+      method: 'PUT',
+      body: JSON.stringify(contactData),
+    });
+  }
+
+  async deleteCampusContact(campusId: string, contactId: string): Promise<any> {
+    return this.request(`/campuses/${campusId}/contacts/${contactId}`, {
+      method: 'DELETE',
+    });
+  }
 }
 
 // Create singleton instance
