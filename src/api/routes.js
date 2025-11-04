@@ -2323,4 +2323,260 @@ router.delete('/campuses/:campusId/rooms/:roomId', authenticateFlexible, async (
   }
 });
 
+// ==================== PROGRAM MANAGEMENT ROUTES ====================
+
+// Get all program categories
+router.get('/program-categories', authenticateFlexible, async (req, res) => {
+  try {
+    const result = await query(
+      'SELECT * FROM program_categories WHERE is_active = true ORDER BY name'
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Get program categories error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Create program category
+router.post('/program-categories', authenticateFlexible, async (req, res) => {
+  try {
+    const { name, description, isActive = true } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ error: 'Category name is required' });
+    }
+
+    const result = await query(
+      'INSERT INTO program_categories (name, description, is_active) VALUES ($1, $2, $3) RETURNING *',
+      [name, description, isActive]
+    );
+
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Create program category error:', error);
+    if (error.code === '23505') { // Unique constraint violation
+      res.status(400).json({ error: 'Category name already exists' });
+    } else {
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+});
+
+// Update program category
+router.put('/program-categories/:id', authenticateFlexible, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, description, isActive } = req.body;
+
+    const result = await query(
+      'UPDATE program_categories SET name = COALESCE($1, name), description = COALESCE($2, description), is_active = COALESCE($3, is_active), updated_at = NOW() WHERE id = $4 RETURNING *',
+      [name, description, isActive, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Program category not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Update program category error:', error);
+    if (error.code === '23505') { // Unique constraint violation
+      res.status(400).json({ error: 'Category name already exists' });
+    } else {
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+});
+
+// Delete program category
+router.delete('/program-categories/:id', authenticateFlexible, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Check if category is being used by programs
+    const programsUsingCategory = await query(
+      'SELECT COUNT(*) as count FROM programs WHERE category_id = $1',
+      [id]
+    );
+
+    if (parseInt(programsUsingCategory.rows[0].count) > 0) {
+      return res.status(400).json({ error: 'Cannot delete category that is being used by programs' });
+    }
+
+    const result = await query(
+      'DELETE FROM program_categories WHERE id = $1 RETURNING *',
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Program category not found' });
+    }
+
+    res.json({ message: 'Program category deleted successfully' });
+  } catch (error) {
+    console.error('Delete program category error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get all programs
+router.get('/programs', authenticateFlexible, async (req, res) => {
+  try {
+    const result = await query(`
+      SELECT 
+        p.*,
+        pc.name as category_name,
+        o.name as organization_name
+      FROM programs p
+      LEFT JOIN program_categories pc ON p.category_id = pc.id
+      LEFT JOIN organizations o ON p.organization_id = o.id
+      WHERE p.is_active = true
+      ORDER BY p.name
+    `);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Get programs error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get programs by organization
+router.get('/organizations/:organizationId/programs', authenticateFlexible, async (req, res) => {
+  try {
+    const { organizationId } = req.params;
+
+    const result = await query(`
+      SELECT 
+        p.*,
+        pc.name as category_name,
+        o.name as organization_name
+      FROM programs p
+      LEFT JOIN program_categories pc ON p.category_id = pc.id
+      LEFT JOIN organizations o ON p.organization_id = o.id
+      WHERE p.organization_id = $1 AND p.is_active = true
+      ORDER BY p.name
+    `, [organizationId]);
+
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Get organization programs error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Create program
+router.post('/programs', authenticateFlexible, async (req, res) => {
+  try {
+    const { 
+      organizationId, 
+      categoryId, 
+      name, 
+      description, 
+      ageGroup, 
+      maxStudents, 
+      pricePerSession, 
+      isActive = true 
+    } = req.body;
+
+    if (!organizationId || !categoryId || !name) {
+      return res.status(400).json({ error: 'Organization ID, category ID, and name are required' });
+    }
+
+    // Verify organization exists
+    const orgCheck = await query('SELECT id FROM organizations WHERE id = $1', [organizationId]);
+    if (orgCheck.rows.length === 0) {
+      return res.status(400).json({ error: 'Organization not found' });
+    }
+
+    // Verify category exists
+    const categoryCheck = await query('SELECT id FROM program_categories WHERE id = $1', [categoryId]);
+    if (categoryCheck.rows.length === 0) {
+      return res.status(400).json({ error: 'Program category not found' });
+    }
+
+    const result = await query(`
+      INSERT INTO programs (organization_id, category_id, name, description, age_group, max_students, price_per_session, is_active)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      RETURNING *
+    `, [organizationId, categoryId, name, description, ageGroup, maxStudents, pricePerSession, isActive]);
+
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Create program error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Update program
+router.put('/programs/:id', authenticateFlexible, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, description, categoryId, ageGroup, maxStudents, pricePerSession, isActive } = req.body;
+
+    // If categoryId is provided, verify it exists
+    if (categoryId) {
+      const categoryCheck = await query('SELECT id FROM program_categories WHERE id = $1', [categoryId]);
+      if (categoryCheck.rows.length === 0) {
+        return res.status(400).json({ error: 'Program category not found' });
+      }
+    }
+
+    const result = await query(`
+      UPDATE programs 
+      SET 
+        name = COALESCE($1, name),
+        description = COALESCE($2, description),
+        category_id = COALESCE($3, category_id),
+        age_group = COALESCE($4, age_group),
+        max_students = COALESCE($5, max_students),
+        price_per_session = COALESCE($6, price_per_session),
+        is_active = COALESCE($7, is_active),
+        updated_at = NOW()
+      WHERE id = $8
+      RETURNING *
+    `, [name, description, categoryId, ageGroup, maxStudents, pricePerSession, isActive, id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Program not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Update program error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Delete program
+router.delete('/programs/:id', authenticateFlexible, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Check if program is being used by classes
+    const classesUsingProgram = await query(
+      'SELECT COUNT(*) as count FROM classes WHERE program_id = $1',
+      [id]
+    );
+
+    if (parseInt(classesUsingProgram.rows[0].count) > 0) {
+      return res.status(400).json({ error: 'Cannot delete program that has classes' });
+    }
+
+    const result = await query(
+      'DELETE FROM programs WHERE id = $1 RETURNING *',
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Program not found' });
+    }
+
+    res.json({ message: 'Program deleted successfully' });
+  } catch (error) {
+    console.error('Delete program error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 export default router;

@@ -125,16 +125,31 @@ export interface Term {
 }
 
 // Programs & Scheduling
+export interface ProgramCategory {
+  id: string;
+  name: string;
+  description?: string;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface Program {
   id: string;
   organizationId: string;
+  categoryId: string;
   name: string;
   description?: string;
-  type: ProgramType;
-  sections: Section[];
+  ageGroup?: string;
+  maxStudents?: number;
+  pricePerSession?: number;
+  isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
-  deletedAt?: Date;
+  
+  // Relationships
+  category?: ProgramCategory;
+  organization?: Organization;
 }
 
 export interface ProgramType {

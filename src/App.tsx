@@ -15,6 +15,7 @@ import BulkCommunicationsPage from './pages/BulkCommunicationsPage';
 import AdminDashboard from './pages/AdminDashboard';
 import UserManagementPage from './pages/UserManagementPage';
 import OrganizationManagementPage from './pages/OrganizationManagementPage';
+import ProgramManagementPage from './pages/ProgramManagementPage';
 import TeacherClearanceManagementPage from './pages/TeacherClearanceManagementPage';
 import AcceptInvitationPage from './pages/AcceptInvitationPage';
 import ProfileSetupPage from './pages/ProfileSetupPage';
@@ -133,6 +134,13 @@ function AppContent() {
           icon: Building,
           color: 'bg-emerald-600',
           href: '/organizations'
+        },
+        {
+          title: 'Programs',
+          description: 'Manage educational programs and categories',
+          icon: BookOpen,
+          color: 'bg-indigo-600',
+          href: '/programs'
         },
         {
           title: 'Teacher Clearances',
@@ -273,6 +281,13 @@ function AppContent() {
             href: '/organizations'
           },
           {
+            title: 'Programs',
+            description: 'Manage educational programs and categories',
+            icon: BookOpen,
+            color: 'bg-indigo-600',
+            href: '/programs'
+          },
+          {
             title: 'Teacher Clearances',
             description: 'Manage teacher certifications and clearances',
             icon: Shield,
@@ -355,6 +370,8 @@ function AppContent() {
         return currentProfile ? <UserManagementPage currentProfile={currentProfile as any} /> : null;
       case 'organizations':
         return <OrganizationManagementPage />;
+      case 'programs':
+        return <ProgramManagementPage />;
       case 'teacher-clearances':
         return <TeacherClearanceManagementPage />;
       case 'schedule':

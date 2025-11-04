@@ -471,6 +471,87 @@ class ApiClient {
       method: 'DELETE',
     });
   }
+
+  // ==================== PROGRAM MANAGEMENT ====================
+
+  // Program Categories
+  async getProgramCategories(): Promise<any[]> {
+    return this.request('/program-categories');
+  }
+
+  async createProgramCategory(categoryData: {
+    name: string;
+    description?: string;
+    isActive?: boolean;
+  }): Promise<any> {
+    return this.request('/program-categories', {
+      method: 'POST',
+      body: JSON.stringify(categoryData),
+    });
+  }
+
+  async updateProgramCategory(categoryId: string, categoryData: {
+    name?: string;
+    description?: string;
+    isActive?: boolean;
+  }): Promise<any> {
+    return this.request(`/program-categories/${categoryId}`, {
+      method: 'PUT',
+      body: JSON.stringify(categoryData),
+    });
+  }
+
+  async deleteProgramCategory(categoryId: string): Promise<any> {
+    return this.request(`/program-categories/${categoryId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Programs
+  async getPrograms(): Promise<any[]> {
+    return this.request('/programs');
+  }
+
+  async getOrganizationPrograms(organizationId: string): Promise<any[]> {
+    return this.request(`/organizations/${organizationId}/programs`);
+  }
+
+  async createProgram(programData: {
+    organizationId: string;
+    categoryId: string;
+    name: string;
+    description?: string;
+    ageGroup?: string;
+    maxStudents?: number;
+    pricePerSession?: number;
+    isActive?: boolean;
+  }): Promise<any> {
+    return this.request('/programs', {
+      method: 'POST',
+      body: JSON.stringify(programData),
+    });
+  }
+
+  async updateProgram(programId: string, programData: {
+    name?: string;
+    description?: string;
+    categoryId?: string;
+    ageGroup?: string;
+    maxStudents?: number;
+    pricePerSession?: number;
+    isActive?: boolean;
+  }): Promise<any> {
+    return this.request(`/programs/${programId}`, {
+      method: 'PUT',
+      body: JSON.stringify(programData),
+    });
+  }
+
+  async deleteProgram(programId: string): Promise<any> {
+    return this.request(`/programs/${programId}`, {
+      method: 'DELETE',
+    });
+  }
 }
 
 // Create singleton instance

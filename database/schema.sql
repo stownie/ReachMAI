@@ -60,15 +60,24 @@ CREATE TABLE organizations (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Program Categories
+CREATE TABLE program_categories (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(100) NOT NULL UNIQUE,
+    description TEXT,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Programs/Courses
 CREATE TABLE programs (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+    category_id UUID REFERENCES program_categories(id),
     name VARCHAR(255) NOT NULL,
     description TEXT,
-    category VARCHAR(100),
     age_group VARCHAR(50),
-    duration_weeks INTEGER,
     max_students INTEGER,
     price_per_session DECIMAL(10,2),
     is_active BOOLEAN DEFAULT TRUE,
@@ -261,6 +270,9 @@ CREATE INDEX idx_enrollments_student_id ON enrollments(student_id);
 CREATE INDEX idx_enrollments_class_id ON enrollments(class_id);
 CREATE INDEX idx_assignments_class_id ON assignments(class_id);
 CREATE INDEX idx_attendance_class_student ON attendance_records(class_id, student_id);
+CREATE INDEX idx_programs_category_id ON programs(category_id);
+CREATE INDEX idx_programs_organization_id ON programs(organization_id);
+CREATE INDEX idx_program_categories_name ON program_categories(name);
 CREATE INDEX idx_notifications_recipient ON notifications(recipient_id);
 CREATE INDEX idx_messages_sender ON messages(sender_id);
 CREATE INDEX idx_messages_recipient ON messages(recipient_id);
@@ -278,6 +290,7 @@ $$ language 'plpgsql';
 CREATE TRIGGER update_auth_accounts_updated_at BEFORE UPDATE ON auth_accounts FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_user_profiles_updated_at BEFORE UPDATE ON user_profiles FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_organizations_updated_at BEFORE UPDATE ON organizations FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_program_categories_updated_at BEFORE UPDATE ON program_categories FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_programs_updated_at BEFORE UPDATE ON programs FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_classes_updated_at BEFORE UPDATE ON classes FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_enrollments_updated_at BEFORE UPDATE ON enrollments FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
