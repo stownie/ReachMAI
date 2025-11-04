@@ -73,17 +73,17 @@ const ProgramManagementPage: React.FC = () => {
     setShowProgramModal(true);
   };
 
-  const handleEditProgram = (program: Program) => {
+  const handleEditProgram = (program: any) => {
     setEditingProgram(program);
     setProgramFormData({
       name: program.name,
       description: program.description || '',
-      organizationId: program.organizationId,
-      categoryId: program.categoryId,
-      ageGroup: program.ageGroup || '',
-      maxStudents: program.maxStudents?.toString() || '',
-      pricePerSession: program.pricePerSession?.toString() || '',
-      isActive: program.isActive
+      organizationId: program.organization_id,
+      categoryId: program.category_id,
+      ageGroup: program.age_group || '',
+      maxStudents: program.max_students?.toString() || '',
+      pricePerSession: program.price_per_session?.toString() || '',
+      isActive: program.is_active
     });
     setShowProgramModal(true);
   };
@@ -155,12 +155,12 @@ const ProgramManagementPage: React.FC = () => {
     setShowCategoryModal(true);
   };
 
-  const handleEditCategory = (category: ProgramCategory) => {
+  const handleEditCategory = (category: any) => {
     setEditingCategory(category);
     setCategoryFormData({
       name: category.name,
       description: category.description || '',
-      isActive: category.isActive
+      isActive: category.is_active
     });
     setShowCategoryModal(true);
   };
@@ -211,14 +211,14 @@ const ProgramManagementPage: React.FC = () => {
     }
   };
 
-  const getCategoryName = (categoryId: string) => {
-    const category = categories.find(c => c.id === categoryId);
-    return category?.name || 'Unknown Category';
+  const getCategoryName = (program: any) => {
+    // Use the category_name from the backend JOIN query, fallback to lookup
+    return program.category_name || (categories.find(c => c.id === program.categoryId)?.name) || 'Unknown Category';
   };
 
-  const getOrganizationName = (organizationId: string) => {
-    const organization = organizations.find(o => o.id === organizationId);
-    return organization?.name || 'Unknown Organization';
+  const getOrganizationName = (program: any) => {
+    // Use the organization_name from the backend JOIN query, fallback to lookup
+    return program.organization_name || (organizations.find(o => o.id === program.organizationId)?.name) || 'Unknown Organization';
   };
 
   if (loading) {
@@ -330,24 +330,24 @@ const ProgramManagementPage: React.FC = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {getOrganizationName(program.organizationId)}
+                        {getOrganizationName(program)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {getCategoryName(program.categoryId)}
+                        {getCategoryName(program)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {program.ageGroup || 'Not specified'}
+                        {program.age_group || 'Not specified'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {program.pricePerSession ? `$${program.pricePerSession}` : 'Not specified'}
+                        {program.price_per_session ? `$${program.price_per_session}` : 'Not specified'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          program.isActive
+                          program.is_active
                             ? 'bg-green-100 text-green-800'
                             : 'bg-red-100 text-red-800'
                         }`}>
-                          {program.isActive ? 'Active' : 'Inactive'}
+                          {program.is_active ? 'Active' : 'Inactive'}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -430,11 +430,11 @@ const ProgramManagementPage: React.FC = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          category.isActive
+                          category.is_active
                             ? 'bg-green-100 text-green-800'
                             : 'bg-red-100 text-red-800'
                         }`}>
-                          {category.isActive ? 'Active' : 'Inactive'}
+                          {category.is_active ? 'Active' : 'Inactive'}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">

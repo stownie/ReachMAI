@@ -2329,7 +2329,7 @@ router.delete('/campuses/:campusId/rooms/:roomId', authenticateFlexible, async (
 router.get('/program-categories', authenticateFlexible, async (req, res) => {
   try {
     const result = await query(
-      'SELECT * FROM program_categories WHERE is_active = true ORDER BY name'
+      'SELECT * FROM program_categories ORDER BY name'
     );
     res.json(result.rows);
   } catch (error) {
@@ -2431,7 +2431,6 @@ router.get('/programs', authenticateFlexible, async (req, res) => {
       FROM programs p
       LEFT JOIN program_categories pc ON p.category_id = pc.id
       LEFT JOIN organizations o ON p.organization_id = o.id
-      WHERE p.is_active = true
       ORDER BY p.name
     `);
     res.json(result.rows);
