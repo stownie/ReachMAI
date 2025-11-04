@@ -262,24 +262,6 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ currentProfile }) => {
     ? rooms.filter(room => room.campus_id === classFormData.campusId)
     : [];
 
-  const isAdmin = currentProfile.type === 'admin';
-  const isTeacher = currentProfile.type === 'teacher';
-  const showManagement = isAdmin || isTeacher;
-
-  if (!showManagement) {
-    return (
-      <div className="max-w-4xl mx-auto p-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
-          <Calendar className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-          <h2 className="text-xl font-semibold text-gray-800 mb-2">Schedule Access</h2>
-          <p className="text-gray-600">
-            Schedule management is available for administrators and teachers only.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -327,15 +309,13 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ currentProfile }) => {
         <div className="space-y-4">
           <div className="flex justify-between items-center">
             <h2 className="text-lg font-semibold text-gray-800">Classes</h2>
-            {isAdmin && (
-              <button
-                onClick={handleAddClass}
-                className="bg-amber-600 text-white px-4 py-2 rounded-md hover:bg-amber-700 flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                Add Class
-              </button>
-            )}
+            <button
+              onClick={handleAddClass}
+              className="bg-amber-600 text-white px-4 py-2 rounded-md hover:bg-amber-700 flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              Add Class
+            </button>
           </div>
 
           <div className="bg-white shadow rounded-lg overflow-hidden">
@@ -363,27 +343,23 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ currentProfile }) => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
                   </th>
-                  {isAdmin && (
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  )}
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {classes.length === 0 ? (
                   <tr>
-                    <td colSpan={isAdmin ? 8 : 7} className="px-6 py-12 text-center text-gray-500">
+                    <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
                       <BookOpen className="mx-auto h-12 w-12 text-gray-400" />
                       <p className="mt-2">No classes found</p>
-                      {isAdmin && (
-                        <button
-                          onClick={handleAddClass}
-                          className="mt-2 text-amber-600 hover:text-amber-700"
-                        >
-                          Add the first class
-                        </button>
-                      )}
+                      <button
+                        onClick={handleAddClass}
+                        className="mt-2 text-amber-600 hover:text-amber-700"
+                      >
+                        Add the first class
+                      </button>
                     </td>
                   </tr>
                 ) : (
@@ -448,22 +424,20 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ currentProfile }) => {
                           {classItem.is_active ? 'Active' : 'Inactive'}
                         </span>
                       </td>
-                      {isAdmin && (
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <button
-                            onClick={() => handleEditClass(classItem)}
-                            className="text-amber-600 hover:text-amber-900 mr-3"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteClass(classItem)}
-                            className="text-red-600 hover:text-red-900"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </td>
-                      )}
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button
+                          onClick={() => handleEditClass(classItem)}
+                          className="text-amber-600 hover:text-amber-900 mr-3"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteClass(classItem)}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
                     </tr>
                   ))
                 )}
