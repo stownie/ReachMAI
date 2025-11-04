@@ -105,10 +105,22 @@ export interface Room {
   id: string;
   campusId: string;
   name: string;
-  capacity: number;
+  roomType?: string;
+  capacity?: number;
+  equipment?: string;
+  notes?: string;
+  isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
-  deletedAt?: Date;
+}
+
+// Alias for compatibility with database field names
+export interface CampusRoom extends Room {
+  campus_id: string;
+  room_type?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Term {
@@ -160,6 +172,34 @@ export interface ProgramType {
   visibleToRoles: string[];
   selfEnrollRoles: string[];
   requiresApproval: boolean;
+}
+
+export interface Class {
+  id: string;
+  programId: string;
+  teacherId?: string;
+  campusId?: string;
+  roomId?: string;
+  name: string;
+  description?: string;
+  startDate: string; // Date string in YYYY-MM-DD format
+  endDate: string;   // Date string in YYYY-MM-DD format
+  dayOfWeek: number; // 0=Sunday, 6=Saturday
+  startTime: string; // Time string in HH:MM format
+  endTime: string;   // Time string in HH:MM format
+  maxStudents: number;
+  currentStudents: number;
+  location?: string;
+  allowPublicEnrollment: boolean;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+
+  // Relationships (populated by API joins)
+  program?: Program;
+  teacher?: UserProfile;
+  campus?: Campus;
+  room?: CampusRoom;
 }
 
 export interface Section {

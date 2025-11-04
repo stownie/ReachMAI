@@ -2578,4 +2578,355 @@ router.delete('/programs/:id', authenticateFlexible, async (req, res) => {
   }
 });
 
+// ==================== CLASS MANAGEMENT ROUTES ====================
+
+// Get all classes
+router.get('/classes', authenticateFlexible, async (req, res) => {
+  try {
+    const result = await query(`
+      SELECT 
+        c.*,
+        p.name as program_name,
+        up.first_name as teacher_first_name,
+        up.last_name as teacher_last_name,
+        camp.name as campus_name,
+        cr.name as room_name
+      FROM classes c
+      LEFT JOIN programs p ON c.program_id = p.id
+      LEFT JOIN user_profiles up ON c.teacher_id = up.id
+      LEFT JOIN campuses camp ON c.campus_id = camp.id
+      LEFT JOIN campus_rooms cr ON c.room_id = cr.id
+      ORDER BY c.start_date, c.start_time
+    `);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Get classes error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get class by ID
+router.get('/classes/:id', authenticateFlexible, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const result = await query(`
+      SELECT 
+        c.*,
+        p.name as program_name,
+        up.first_name as teacher_first_name,
+        up.last_name as teacher_last_name,
+        camp.name as campus_name,
+        cr.name as room_name
+      FROM classes c
+      LEFT JOIN programs p ON c.program_id = p.id
+      LEFT JOIN user_profiles up ON c.teacher_id = up.id
+      LEFT JOIN campuses camp ON c.campus_id = camp.id
+      LEFT JOIN campus_rooms cr ON c.room_id = cr.id
+      WHERE c.id = $1
+    `, [id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Class not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Get class error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Check for schedule conflicts
+router.post('/classes/check-conflict', authenticateFlexible, async (req, res) => {
+  try {
+    const { teacherId, roomId, classId, dayOfWeek, startTime, endTime, startDate, endDate } = req.body;
+    
+    let conflicts = [];
+    
+    // Check teacher conflicts if teacherId provided
+    if (teacherId) {
+      const teacherConflict = await query(
+        'SELECT check_teacher_schedule_conflict($1, $2, $3, $4, $5, $6, $7) as has_conflict',
+        [teacherId, classId, dayOfWeek, startTime, endTime, startDate, endDate]
+      );
+      
+      if (teacherConflict.rows[0].has_conflict) {
+        const conflictDetails = await query(`
+          SELECT c.*, p.name as program_name
+          FROM classes c
+          LEFT JOIN programs p ON c.program_id = p.id
+          WHERE c.teacher_id = $1
+            AND c.id != COALESCE($2::uuid, gen_random_uuid())
+            AND c.day_of_week = $3
+            AND c.is_active = true
+            AND (c.start_date <= $6 AND c.end_date >= $5)
+            AND (c.start_time < $4 AND c.end_time > $3)
+        `, [teacherId, classId, dayOfWeek, startTime, endTime, startDate, endDate]);
+        
+        conflicts.push({
+          type: 'teacher',
+          message: 'Teacher has a conflicting class',
+          conflictingClasses: conflictDetails.rows
+        });
+      }
+    }
+    
+    // Check room conflicts if roomId provided
+    if (roomId) {
+      const roomConflict = await query(
+        'SELECT check_room_schedule_conflict($1, $2, $3, $4, $5, $6, $7) as has_conflict',
+        [roomId, classId, dayOfWeek, startTime, endTime, startDate, endDate]
+      );
+      
+      if (roomConflict.rows[0].has_conflict) {
+        const conflictDetails = await query(`
+          SELECT c.*, p.name as program_name, cr.name as room_name
+          FROM classes c
+          LEFT JOIN programs p ON c.program_id = p.id
+          LEFT JOIN campus_rooms cr ON c.room_id = cr.id
+          WHERE c.room_id = $1
+            AND c.id != COALESCE($2::uuid, gen_random_uuid())
+            AND c.day_of_week = $3
+            AND c.is_active = true
+            AND (c.start_date <= $6 AND c.end_date >= $5)
+            AND (c.start_time < $4 AND c.end_time > $3)
+        `, [roomId, classId, dayOfWeek, startTime, endTime, startDate, endDate]);
+        
+        conflicts.push({
+          type: 'room',
+          message: 'Room has a conflicting class',
+          conflictingClasses: conflictDetails.rows
+        });
+      }
+    }
+    
+    res.json({
+      hasConflict: conflicts.length > 0,
+      conflicts
+    });
+  } catch (error) {
+    console.error('Check schedule conflict error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Create class
+router.post('/classes', authenticateFlexible, async (req, res) => {
+  try {
+    const { 
+      programId,
+      teacherId,
+      campusId,
+      roomId,
+      name,
+      description,
+      startDate,
+      endDate,
+      dayOfWeek,
+      startTime,
+      endTime,
+      maxStudents = 20,
+      location,
+      allowPublicEnrollment = true,
+      isActive = true
+    } = req.body;
+
+    if (!programId || !name || !startDate || !endDate || dayOfWeek === undefined || !startTime || !endTime) {
+      return res.status(400).json({ error: 'Program ID, name, dates, day of week, and times are required' });
+    }
+
+    // Verify program exists
+    const programCheck = await query('SELECT id FROM programs WHERE id = $1', [programId]);
+    if (programCheck.rows.length === 0) {
+      return res.status(400).json({ error: 'Program not found' });
+    }
+
+    // Verify teacher exists if provided
+    if (teacherId) {
+      const teacherCheck = await query('SELECT id FROM user_profiles WHERE id = $1 AND profile_type = $2', [teacherId, 'teacher']);
+      if (teacherCheck.rows.length === 0) {
+        return res.status(400).json({ error: 'Teacher not found' });
+      }
+    }
+
+    // Verify campus exists if provided
+    if (campusId) {
+      const campusCheck = await query('SELECT id FROM campuses WHERE id = $1', [campusId]);
+      if (campusCheck.rows.length === 0) {
+        return res.status(400).json({ error: 'Campus not found' });
+      }
+    }
+
+    // Verify room exists and belongs to campus if provided
+    if (roomId) {
+      const roomCheck = await query('SELECT id FROM campus_rooms WHERE id = $1 AND ($2::uuid IS NULL OR campus_id = $2)', [roomId, campusId]);
+      if (roomCheck.rows.length === 0) {
+        return res.status(400).json({ error: 'Room not found or does not belong to the specified campus' });
+      }
+    }
+
+    // Check for conflicts before creating
+    if (teacherId || roomId) {
+      const conflictCheck = await query(
+        `SELECT 
+          CASE WHEN $1::uuid IS NOT NULL THEN check_teacher_schedule_conflict($1, NULL, $6, $7, $8, $4, $5) ELSE false END as teacher_conflict,
+          CASE WHEN $2::uuid IS NOT NULL THEN check_room_schedule_conflict($2, NULL, $6, $7, $8, $4, $5) ELSE false END as room_conflict`,
+        [teacherId, roomId, null, startDate, endDate, dayOfWeek, startTime, endTime]
+      );
+
+      if (conflictCheck.rows[0].teacher_conflict || conflictCheck.rows[0].room_conflict) {
+        return res.status(409).json({ 
+          error: 'Schedule conflict detected',
+          details: {
+            teacherConflict: conflictCheck.rows[0].teacher_conflict,
+            roomConflict: conflictCheck.rows[0].room_conflict
+          }
+        });
+      }
+    }
+
+    const result = await query(`
+      INSERT INTO classes (
+        program_id, teacher_id, campus_id, room_id, name, description,
+        start_date, end_date, day_of_week, start_time, end_time,
+        max_students, location, allow_public_enrollment, is_active
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+      RETURNING *
+    `, [
+      programId, teacherId, campusId, roomId, name, description,
+      startDate, endDate, dayOfWeek, startTime, endTime,
+      maxStudents, location, allowPublicEnrollment, isActive
+    ]);
+
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Create class error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Update class
+router.put('/classes/:id', authenticateFlexible, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { 
+      name, description, teacherId, campusId, roomId,
+      startDate, endDate, dayOfWeek, startTime, endTime,
+      maxStudents, location, allowPublicEnrollment, isActive
+    } = req.body;
+
+    // Verify teacher exists if provided
+    if (teacherId) {
+      const teacherCheck = await query('SELECT id FROM user_profiles WHERE id = $1 AND profile_type = $2', [teacherId, 'teacher']);
+      if (teacherCheck.rows.length === 0) {
+        return res.status(400).json({ error: 'Teacher not found' });
+      }
+    }
+
+    // Verify campus exists if provided
+    if (campusId) {
+      const campusCheck = await query('SELECT id FROM campuses WHERE id = $1', [campusId]);
+      if (campusCheck.rows.length === 0) {
+        return res.status(400).json({ error: 'Campus not found' });
+      }
+    }
+
+    // Verify room exists and belongs to campus if provided
+    if (roomId) {
+      const roomCheck = await query('SELECT id FROM campus_rooms WHERE id = $1 AND ($2::uuid IS NULL OR campus_id = $2)', [roomId, campusId]);
+      if (roomCheck.rows.length === 0) {
+        return res.status(400).json({ error: 'Room not found or does not belong to the specified campus' });
+      }
+    }
+
+    // Check for conflicts if schedule fields are being updated
+    if ((teacherId || roomId) && (dayOfWeek !== undefined || startTime || endTime || startDate || endDate)) {
+      const conflictCheck = await query(
+        `SELECT 
+          CASE WHEN $1::uuid IS NOT NULL THEN check_teacher_schedule_conflict($1, $8, COALESCE($6, (SELECT day_of_week FROM classes WHERE id = $8)), COALESCE($7, (SELECT start_time FROM classes WHERE id = $8)), COALESCE($4, (SELECT end_time FROM classes WHERE id = $8)), COALESCE($5, (SELECT start_date FROM classes WHERE id = $8)), COALESCE($3, (SELECT end_date FROM classes WHERE id = $8))) ELSE false END as teacher_conflict,
+          CASE WHEN $2::uuid IS NOT NULL THEN check_room_schedule_conflict($2, $8, COALESCE($6, (SELECT day_of_week FROM classes WHERE id = $8)), COALESCE($7, (SELECT start_time FROM classes WHERE id = $8)), COALESCE($4, (SELECT end_time FROM classes WHERE id = $8)), COALESCE($5, (SELECT start_date FROM classes WHERE id = $8)), COALESCE($3, (SELECT end_date FROM classes WHERE id = $8))) ELSE false END as room_conflict`,
+        [teacherId, roomId, endDate, endTime, startDate, dayOfWeek, startTime, id]
+      );
+
+      if (conflictCheck.rows[0].teacher_conflict || conflictCheck.rows[0].room_conflict) {
+        return res.status(409).json({ 
+          error: 'Schedule conflict detected',
+          details: {
+            teacherConflict: conflictCheck.rows[0].teacher_conflict,
+            roomConflict: conflictCheck.rows[0].room_conflict
+          }
+        });
+      }
+    }
+
+    const result = await query(`
+      UPDATE classes 
+      SET 
+        name = COALESCE($1, name),
+        description = COALESCE($2, description),
+        teacher_id = COALESCE($3, teacher_id),
+        campus_id = COALESCE($4, campus_id),
+        room_id = COALESCE($5, room_id),
+        start_date = COALESCE($6, start_date),
+        end_date = COALESCE($7, end_date),
+        day_of_week = COALESCE($8, day_of_week),
+        start_time = COALESCE($9, start_time),
+        end_time = COALESCE($10, end_time),
+        max_students = COALESCE($11, max_students),
+        location = COALESCE($12, location),
+        allow_public_enrollment = COALESCE($13, allow_public_enrollment),
+        is_active = COALESCE($14, is_active),
+        updated_at = NOW()
+      WHERE id = $15
+      RETURNING *
+    `, [
+      name, description, teacherId, campusId, roomId,
+      startDate, endDate, dayOfWeek, startTime, endTime,
+      maxStudents, location, allowPublicEnrollment, isActive, id
+    ]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Class not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Update class error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Delete class
+router.delete('/classes/:id', authenticateFlexible, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Check if class has enrollments
+    const enrollmentsCheck = await query(
+      'SELECT COUNT(*) as count FROM enrollments WHERE class_id = $1',
+      [id]
+    );
+
+    if (parseInt(enrollmentsCheck.rows[0].count) > 0) {
+      return res.status(400).json({ error: 'Cannot delete class that has enrollments' });
+    }
+
+    const result = await query(
+      'DELETE FROM classes WHERE id = $1 RETURNING *',
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Class not found' });
+    }
+
+    res.json({ message: 'Class deleted successfully' });
+  } catch (error) {
+    console.error('Delete class error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 export default router;

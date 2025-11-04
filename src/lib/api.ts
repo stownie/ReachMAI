@@ -552,6 +552,85 @@ class ApiClient {
       method: 'DELETE',
     });
   }
+
+  // ==================== CLASS MANAGEMENT ====================
+
+  // Classes
+  async getClasses(): Promise<any[]> {
+    return this.request('/classes');
+  }
+
+  async getClassById(classId: string): Promise<any> {
+    return this.request(`/classes/${classId}`);
+  }
+
+  async createClass(classData: {
+    programId: string;
+    teacherId?: string;
+    campusId?: string;
+    roomId?: string;
+    name: string;
+    description?: string;
+    startDate: string;
+    endDate: string;
+    dayOfWeek: number;
+    startTime: string;
+    endTime: string;
+    maxStudents?: number;
+    location?: string;
+    allowPublicEnrollment?: boolean;
+    isActive?: boolean;
+  }): Promise<any> {
+    return this.request('/classes', {
+      method: 'POST',
+      body: JSON.stringify(classData),
+    });
+  }
+
+  async updateClass(classId: string, classData: {
+    name?: string;
+    description?: string;
+    teacherId?: string;
+    campusId?: string;
+    roomId?: string;
+    startDate?: string;
+    endDate?: string;
+    dayOfWeek?: number;
+    startTime?: string;
+    endTime?: string;
+    maxStudents?: number;
+    location?: string;
+    allowPublicEnrollment?: boolean;
+    isActive?: boolean;
+  }): Promise<any> {
+    return this.request(`/classes/${classId}`, {
+      method: 'PUT',
+      body: JSON.stringify(classData),
+    });
+  }
+
+  async deleteClass(classId: string): Promise<any> {
+    return this.request(`/classes/${classId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Check for schedule conflicts
+  async checkScheduleConflict(conflictData: {
+    teacherId?: string;
+    roomId?: string;
+    classId?: string;
+    dayOfWeek: number;
+    startTime: string;
+    endTime: string;
+    startDate: string;
+    endDate: string;
+  }): Promise<{ hasConflict: boolean; conflicts: any[] }> {
+    return this.request('/classes/check-conflict', {
+      method: 'POST',
+      body: JSON.stringify(conflictData),
+    });
+  }
 }
 
 // Create singleton instance

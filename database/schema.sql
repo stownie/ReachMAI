@@ -90,6 +90,8 @@ CREATE TABLE classes (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     program_id UUID REFERENCES programs(id) ON DELETE CASCADE,
     teacher_id UUID REFERENCES user_profiles(id),
+    campus_id UUID REFERENCES campuses(id),
+    room_id UUID REFERENCES campus_rooms(id),
     name VARCHAR(255) NOT NULL,
     description TEXT,
     start_date DATE NOT NULL,
@@ -100,6 +102,7 @@ CREATE TABLE classes (
     max_students INTEGER DEFAULT 20,
     current_students INTEGER DEFAULT 0,
     location VARCHAR(255),
+    allow_public_enrollment BOOLEAN DEFAULT TRUE,
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -266,6 +269,11 @@ CREATE INDEX idx_user_profiles_account_id ON user_profiles(account_id);
 CREATE INDEX idx_user_profiles_type ON user_profiles(profile_type);
 CREATE INDEX idx_classes_teacher_id ON classes(teacher_id);
 CREATE INDEX idx_classes_program_id ON classes(program_id);
+CREATE INDEX idx_classes_campus_id ON classes(campus_id);
+CREATE INDEX idx_classes_room_id ON classes(room_id);
+CREATE INDEX idx_classes_teacher_schedule ON classes(teacher_id, day_of_week, start_time, end_time, start_date, end_date);
+CREATE INDEX idx_classes_room_schedule ON classes(room_id, day_of_week, start_time, end_time, start_date, end_date);
+CREATE INDEX idx_classes_public_enrollment ON classes(allow_public_enrollment);
 CREATE INDEX idx_enrollments_student_id ON enrollments(student_id);
 CREATE INDEX idx_enrollments_class_id ON enrollments(class_id);
 CREATE INDEX idx_assignments_class_id ON assignments(class_id);
