@@ -70,14 +70,24 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ currentProfile }) => {
       setCampuses(campusesData);
       setTeachers(teachersData);
       
-      // Collect all rooms from campuses
-      const allRooms = campusesData.flatMap((campus: any) => 
-        (campus.rooms || []).map((room: any) => ({
-          ...room,
-          campus_name: campus.name
-        }))
-      );
+      // Fetch rooms for each campus
+      const allRooms = [];
+      for (const campus of campusesData) {
+        try {
+          const campusRooms = await apiClient.getCampusRooms(campus.id);
+          const roomsWithCampusInfo = campusRooms.map((room: any) => ({
+            ...room,
+            campus_id: campus.id,
+            campus_name: campus.name
+          }));
+          allRooms.push(...roomsWithCampusInfo);
+        } catch (error) {
+          console.error(`Error fetching rooms for campus ${campus.name}:`, error);
+          // Continue with other campuses even if one fails
+        }
+      }
       setRooms(allRooms);
+      console.log('Loaded rooms:', allRooms);
       
     } catch (error) {
       console.error('Error loading data:', error);
@@ -261,6 +271,13 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ currentProfile }) => {
   const availableRooms = classFormData.campusId 
     ? rooms.filter(room => room.campus_id === classFormData.campusId)
     : [];
+  
+  // Debug logging for rooms
+  React.useEffect(() => {
+    console.log('Campus selection changed:', classFormData.campusId);
+    console.log('All rooms:', rooms);
+    console.log('Available rooms for campus:', availableRooms);
+  }, [classFormData.campusId, rooms]);
 
   if (loading) {
     return (
