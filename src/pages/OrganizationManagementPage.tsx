@@ -752,6 +752,21 @@ const OrganizationManagementPage: React.FC = () => {
     setShowRoomModal(true);
   };
 
+  const refreshSelectedCampus = async () => {
+    if (!selectedCampusForRooms) return;
+    
+    try {
+      // Get fresh campus data with rooms
+      const updatedCampuses = await apiClient.getCampuses();
+      const updatedCampus = updatedCampuses.find(c => c.id === selectedCampusForRooms.id);
+      if (updatedCampus) {
+        setSelectedCampusForRooms(updatedCampus);
+      }
+    } catch (error) {
+      console.error('Error refreshing campus data:', error);
+    }
+  };
+
 
 
   const handleEditRoom = (room: CampusRoom) => {
@@ -771,9 +786,9 @@ const OrganizationManagementPage: React.FC = () => {
     try {
       const roomData = {
         name: roomFormData.name,
-        capacity: roomFormData.capacity ? parseInt(roomFormData.capacity) : undefined,
-        equipment: roomFormData.equipment || undefined,
-        room_type: roomFormData.room_type || undefined
+        capacity: roomFormData.capacity ? parseInt(roomFormData.capacity) : null,
+        equipment: roomFormData.equipment || null,
+        room_type: roomFormData.room_type || null
       };
 
       if (editingRoom) {
@@ -784,7 +799,7 @@ const OrganizationManagementPage: React.FC = () => {
         alert('Room added successfully!');
       }
 
-      // Reset form and refresh data
+      // Reset form
       setRoomFormData({
         name: '',
         capacity: '',
@@ -793,15 +808,10 @@ const OrganizationManagementPage: React.FC = () => {
       });
       setEditingRoom(null);
       
-      // Refresh campus data to show updated rooms
+      // Refresh both the main campus list and the selected campus for the modal
       await loadData();
+      await refreshSelectedCampus();
       
-      // Update the selected campus with fresh data
-      const updatedCampuses = await apiClient.getCampuses();
-      const updatedCampus = updatedCampuses.find(c => c.id === selectedCampusForRooms.id);
-      if (updatedCampus) {
-        setSelectedCampusForRooms(updatedCampus);
-      }
     } catch (error) {
       console.error('Error saving room:', error);
       alert('Error saving room. Please try again.');
@@ -816,15 +826,10 @@ const OrganizationManagementPage: React.FC = () => {
         await apiClient.deleteCampusRoom(selectedCampusForRooms.id, roomId);
         alert('Room deleted successfully!');
         
-        // Refresh campus data to show updated rooms
+        // Refresh both the main campus list and the selected campus for the modal
         await loadData();
+        await refreshSelectedCampus();
         
-        // Update the selected campus with fresh data
-        const updatedCampuses = await apiClient.getCampuses();
-        const updatedCampus = updatedCampuses.find(c => c.id === selectedCampusForRooms.id);
-        if (updatedCampus) {
-          setSelectedCampusForRooms(updatedCampus);
-        }
       } catch (error) {
         console.error('Error deleting room:', error);
         alert('Error deleting room. Please try again.');
