@@ -778,8 +778,10 @@ const OrganizationManagementPage: React.FC = () => {
 
       if (editingRoom) {
         await apiClient.updateCampusRoom(selectedCampusForRooms.id, editingRoom.id, roomData);
+        alert('Room updated successfully!');
       } else {
         await apiClient.createCampusRoom(selectedCampusForRooms.id, roomData);
+        alert('Room added successfully!');
       }
 
       // Reset form and refresh data
@@ -792,7 +794,14 @@ const OrganizationManagementPage: React.FC = () => {
       setEditingRoom(null);
       
       // Refresh campus data to show updated rooms
-      loadData();
+      await loadData();
+      
+      // Update the selected campus with fresh data
+      const updatedCampuses = await apiClient.getCampuses();
+      const updatedCampus = updatedCampuses.find(c => c.id === selectedCampusForRooms.id);
+      if (updatedCampus) {
+        setSelectedCampusForRooms(updatedCampus);
+      }
     } catch (error) {
       console.error('Error saving room:', error);
       alert('Error saving room. Please try again.');
@@ -805,7 +814,17 @@ const OrganizationManagementPage: React.FC = () => {
     if (confirm('Are you sure you want to delete this room?')) {
       try {
         await apiClient.deleteCampusRoom(selectedCampusForRooms.id, roomId);
-        loadData(); // Refresh data
+        alert('Room deleted successfully!');
+        
+        // Refresh campus data to show updated rooms
+        await loadData();
+        
+        // Update the selected campus with fresh data
+        const updatedCampuses = await apiClient.getCampuses();
+        const updatedCampus = updatedCampuses.find(c => c.id === selectedCampusForRooms.id);
+        if (updatedCampus) {
+          setSelectedCampusForRooms(updatedCampus);
+        }
       } catch (error) {
         console.error('Error deleting room:', error);
         alert('Error deleting room. Please try again.');
