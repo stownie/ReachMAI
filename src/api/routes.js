@@ -2596,8 +2596,8 @@ router.post('/classes/check-conflict', authenticateFlexible, async (req, res) =>
             AND c.id != COALESCE($2::uuid, gen_random_uuid())
             AND c.day_of_week = $3
             AND c.is_active = true
-            AND (c.start_date <= $6 AND c.end_date >= $5)
-            AND (c.start_time < $4 AND c.end_time > $3)
+            AND (c.start_date <= $7 AND c.end_date >= $6)
+            AND (c.start_time < $5 AND c.end_time > $4)
         `, [teacherId, classId, dayOfWeek, startTime, endTime, startDate, endDate]);
         
         conflicts.push({
@@ -2625,8 +2625,8 @@ router.post('/classes/check-conflict', authenticateFlexible, async (req, res) =>
             AND c.id != COALESCE($2::uuid, gen_random_uuid())
             AND c.day_of_week = $3
             AND c.is_active = true
-            AND (c.start_date <= $6 AND c.end_date >= $5)
-            AND (c.start_time < $4 AND c.end_time > $3)
+            AND (c.start_date <= $7 AND c.end_date >= $6)
+            AND (c.start_time < $5 AND c.end_time > $4)
         `, [roomId, classId, dayOfWeek, startTime, endTime, startDate, endDate]);
         
         conflicts.push({
@@ -2706,8 +2706,8 @@ router.post('/classes', authenticateFlexible, async (req, res) => {
     if (teacherId || roomId) {
       const conflictCheck = await query(
         `SELECT 
-          CASE WHEN $1::uuid IS NOT NULL THEN check_teacher_schedule_conflict($1, NULL, $6, $7, $8, $4, $5) ELSE false END as teacher_conflict,
-          CASE WHEN $2::uuid IS NOT NULL THEN check_room_schedule_conflict($2, NULL, $6, $7, $8, $4, $5) ELSE false END as room_conflict`,
+          CASE WHEN $1::uuid IS NOT NULL THEN check_teacher_schedule_conflict($1, $3::uuid, $6, $7, $8, $4, $5) ELSE false END as teacher_conflict,
+          CASE WHEN $2::uuid IS NOT NULL THEN check_room_schedule_conflict($2, $3::uuid, $6, $7, $8, $4, $5) ELSE false END as room_conflict`,
         [teacherId, roomId, null, startDate, endDate, dayOfWeek, startTime, endTime]
       );
 
