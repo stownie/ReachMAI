@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { Calendar as BigCalendar, momentLocalizer, Views } from 'react-big-calendar';
+import moment from 'moment';
 import { 
   Calendar, 
   Clock, 
@@ -9,10 +11,14 @@ import {
   Plus, 
   Edit, 
   Trash2,
-  AlertTriangle
+  AlertTriangle,
+  Filter
 } from 'lucide-react';
 import type { UserProfile, Program, Campus } from '../types';
 import { apiClient } from '../lib/api';
+
+// Initialize calendar localizer
+const localizer = momentLocalizer(moment);
 
 interface SchedulePageProps {
   currentProfile: UserProfile;
@@ -51,6 +57,21 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ currentProfile }) => {
   // Conflict check state
   const [scheduleConflicts, setScheduleConflicts] = useState<any[]>([]);
 
+  // Calendar state
+  const [calendarView, setCalendarView] = useState(Views.WEEK);
+  const [calendarDate, setCalendarDate] = useState(new Date());
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState({
+    teacher: '',
+    organization: '',
+    campus: '',
+    room: '',
+    program: ''
+  });
+
+  // Organizations state for filtering
+  const [organizations, setOrganizations] = useState<any[]>([]);
+
   useEffect(() => {
     loadData();
   }, []);
@@ -58,17 +79,19 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ currentProfile }) => {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [classesData, programsData, campusesData, teachersData] = await Promise.all([
+      const [classesData, programsData, campusesData, teachersData, organizationsData] = await Promise.all([
         apiClient.getClasses(),
         apiClient.getPrograms(),
         apiClient.getAllCampuses(),
-        apiClient.getUsersByType('teacher')
+        apiClient.getUsersByType('teacher'),
+        apiClient.getOrganizations()
       ]);
       
       setClasses(classesData);
       setPrograms(programsData);
       setCampuses(campusesData);
       setTeachers(teachersData);
+      setOrganizations(organizationsData);
       
       // Fetch rooms for each campus
       const allRooms = [];
@@ -271,6 +294,120 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ currentProfile }) => {
     ? rooms.filter(room => room.campus_id === classFormData.campusId)
     : [];
 
+  // Calendar helper functions
+  const convertClassesToCalendarEvents = () => {
+    return classes.filter(classItem => {
+      // Apply filters
+      if (filters.teacher && classItem.teacher_id !== filters.teacher) return false;
+      if (filters.campus && classItem.campus_id !== filters.campus) return false;
+      if (filters.room && classItem.room_id !== filters.room) return false;
+      if (filters.program && classItem.program_id !== filters.program) return false;
+      if (filters.organization) {
+        const program = programs.find(p => p.id === classItem.program_id);
+        if (!program || (program as any).organization_id !== filters.organization) return false;
+      }
+      
+      return true;
+    }).flatMap(classItem => {
+      const events = [];
+      const startDate = new Date(classItem.start_date);
+      const endDate = new Date(classItem.end_date);
+      const dayOfWeek = classItem.day_of_week;
+      
+      // Generate recurring events for each week
+      let currentDate = new Date(startDate);
+      while (currentDate <= endDate) {
+        const dayDiff = (dayOfWeek - currentDate.getDay() + 7) % 7;
+        const eventDate = new Date(currentDate);
+        eventDate.setDate(currentDate.getDate() + dayDiff);
+        
+        if (eventDate >= startDate && eventDate <= endDate) {
+          const [startHour, startMinute] = classItem.start_time.split(':');
+          const [endHour, endMinute] = classItem.end_time.split(':');
+          
+          const eventStart = new Date(eventDate);
+          eventStart.setHours(parseInt(startHour), parseInt(startMinute), 0, 0);
+          
+          const eventEnd = new Date(eventDate);
+          eventEnd.setHours(parseInt(endHour), parseInt(endMinute), 0, 0);
+          
+          events.push({
+            id: `${classItem.id}-${eventDate.toISOString().split('T')[0]}`,
+            title: classItem.name,
+            start: eventStart,
+            end: eventEnd,
+            resource: classItem,
+            allDay: false
+          });
+        }
+        
+        currentDate.setDate(currentDate.getDate() + 7);
+      }
+      
+      return events;
+    });
+  };
+
+  const handleEventSelect = (event: any) => {
+    if (event.resource) {
+      handleEditClass(event.resource);
+    }
+  };
+
+  const eventStyleGetter = (event: any) => {
+    const classItem = event.resource;
+    let backgroundColor = '#3174ad';
+    
+    // Color by program type if available
+    const program = programs.find(p => p.id === classItem.program_id);
+    if (program && (program as any).category_name) {
+      switch ((program as any).category_name?.toLowerCase()) {
+        case 'recital':
+          backgroundColor = '#dc2626'; // red
+          break;
+        case 'ensemble':
+          backgroundColor = '#16a34a'; // green
+          break;
+        case 'class':
+          backgroundColor = '#2563eb'; // blue
+          break;
+        case 'private lesson':
+          backgroundColor = '#7c3aed'; // purple
+          break;
+        case 'parent meeting':
+          backgroundColor = '#ea580c'; // orange
+          break;
+        default:
+          backgroundColor = '#3174ad'; // default blue
+      }
+    }
+    
+    return {
+      style: {
+        backgroundColor,
+        borderRadius: '5px',
+        opacity: 0.8,
+        color: 'white',
+        border: '0px',
+        display: 'block'
+      }
+    };
+  };
+
+  const clearFilters = () => {
+    setFilters({
+      teacher: '',
+      organization: '',
+      campus: '',
+      room: '',
+      program: ''
+    });
+  };
+
+  const filteredRoomsForFilter = filters.campus 
+    ? rooms.filter(room => room.campus_id === filters.campus)
+    : rooms;
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -458,11 +595,259 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ currentProfile }) => {
 
       {/* Calendar Tab */}
       {activeTab === 'calendar' && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="text-center py-12">
-            <Calendar className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-            <h3 className="text-lg font-medium text-gray-800 mb-2">Calendar View</h3>
-            <p className="text-gray-600">Calendar view will be implemented in a future update.</p>
+        <div className="space-y-4">
+          {/* Calendar Header with Filters */}
+          <div className="flex justify-between items-center">
+            <h2 className="text-lg font-semibold text-gray-800">Calendar View</h2>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className="bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 flex items-center gap-2"
+              >
+                <Filter className="w-4 h-4" />
+                Filters
+                {Object.values(filters).some(f => f) && (
+                  <span className="bg-amber-500 text-white text-xs rounded-full px-2 py-1">
+                    {Object.values(filters).filter(f => f).length}
+                  </span>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Filter Panel */}
+          {showFilters && (
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="font-medium text-gray-800">Filter Classes</h3>
+                <button
+                  onClick={clearFilters}
+                  className="text-sm text-gray-600 hover:text-gray-800"
+                >
+                  Clear All
+                </button>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Teacher
+                  </label>
+                  <select
+                    value={filters.teacher}
+                    onChange={(e) => setFilters(prev => ({ ...prev, teacher: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  >
+                    <option value="">All Teachers</option>
+                    {teachers.map(teacher => (
+                      <option key={teacher.id} value={teacher.id}>
+                        {teacher.first_name} {teacher.last_name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Organization
+                  </label>
+                  <select
+                    value={filters.organization}
+                    onChange={(e) => setFilters(prev => ({ ...prev, organization: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  >
+                    <option value="">All Organizations</option>
+                    {organizations.map(org => (
+                      <option key={org.id} value={org.id}>
+                        {org.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Campus
+                  </label>
+                  <select
+                    value={filters.campus}
+                    onChange={(e) => setFilters(prev => ({ ...prev, campus: e.target.value, room: '' }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  >
+                    <option value="">All Campuses</option>
+                    {campuses.map(campus => (
+                      <option key={campus.id} value={campus.id}>
+                        {campus.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Room
+                  </label>
+                  <select
+                    value={filters.room}
+                    onChange={(e) => setFilters(prev => ({ ...prev, room: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    disabled={!filters.campus}
+                  >
+                    <option value="">All Rooms</option>
+                    {filteredRoomsForFilter.map(room => (
+                      <option key={room.id} value={room.id}>
+                        {room.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Program
+                  </label>
+                  <select
+                    value={filters.program}
+                    onChange={(e) => setFilters(prev => ({ ...prev, program: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  >
+                    <option value="">All Programs</option>
+                    {programs.map(program => (
+                      <option key={program.id} value={program.id}>
+                        {program.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Calendar */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div style={{ height: '600px' }}>
+              <BigCalendar
+                localizer={localizer}
+                events={convertClassesToCalendarEvents()}
+                startAccessor="start"
+                endAccessor="end"
+                view={calendarView}
+                date={calendarDate}
+                onView={setCalendarView}
+                onNavigate={setCalendarDate}
+                onSelectEvent={handleEventSelect}
+                eventPropGetter={eventStyleGetter}
+                views={[Views.MONTH, Views.WEEK, Views.DAY]}
+                step={30}
+                timeslots={2}
+                popup
+                selectable
+                components={{
+                  event: ({ event }: { event: any }) => (
+                    <div className="text-xs">
+                      <div className="font-medium">{event.title}</div>
+                      <div className="text-xs opacity-75">
+                        {getTeacherName(event.resource.teacher_id)}
+                      </div>
+                      {event.resource.campus_name && (
+                        <div className="text-xs opacity-75">
+                          {event.resource.campus_name}
+                          {event.resource.room_name && ` - ${event.resource.room_name}`}
+                        </div>
+                      )}
+                    </div>
+                  ),
+                  toolbar: ({ label, onNavigate, onView, view }: { 
+                    label: string; 
+                    onNavigate: (action: any) => void; 
+                    onView: (view: any) => void; 
+                    view: any;
+                  }) => (
+                    <div className="flex justify-between items-center mb-4 pb-4 border-b">
+                      <div className="flex items-center gap-4">
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => onNavigate('PREV')}
+                            className="px-3 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded"
+                          >
+                            ‹
+                          </button>
+                          <button
+                            onClick={() => onNavigate('TODAY')}
+                            className="px-3 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded text-sm"
+                          >
+                            Today
+                          </button>
+                          <button
+                            onClick={() => onNavigate('NEXT')}
+                            className="px-3 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded"
+                          >
+                            ›
+                          </button>
+                        </div>
+                        <h2 className="text-xl font-semibold text-gray-800">{label}</h2>
+                      </div>
+                      
+                      <div className="flex gap-1">
+                        {[
+                          { key: Views.MONTH, label: 'Month' },
+                          { key: Views.WEEK, label: 'Week' },
+                          { key: Views.DAY, label: 'Day' }
+                        ].map(({ key, label: viewLabel }) => (
+                          <button
+                            key={key}
+                            onClick={() => onView(key)}
+                            className={`px-3 py-2 text-sm rounded ${
+                              view === key
+                                ? 'bg-amber-100 text-amber-800 font-medium'
+                                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
+                            }`}
+                          >
+                            {viewLabel}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                }}
+                formats={{
+                  timeGutterFormat: 'h:mm A',
+                  eventTimeRangeFormat: ({ start, end }: { start: Date; end: Date }) => 
+                    `${moment(start).format('h:mm')} - ${moment(end).format('h:mm A')}`
+                }}
+              />
+            </div>
+            
+            {/* Legend */}
+            <div className="mt-4 pt-4 border-t">
+              <h4 className="text-sm font-medium text-gray-700 mb-2">Program Types:</h4>
+              <div className="flex flex-wrap gap-4 text-xs">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-red-600 rounded"></div>
+                  <span>Recital</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-green-600 rounded"></div>
+                  <span>Ensemble</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-blue-600 rounded"></div>
+                  <span>Class</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-purple-600 rounded"></div>
+                  <span>Private Lesson</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-orange-600 rounded"></div>
+                  <span>Parent Meeting</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-blue-400 rounded"></div>
+                  <span>Other</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
