@@ -87,7 +87,6 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ currentProfile }) => {
         }
       }
       setRooms(allRooms);
-      console.log('Loaded rooms:', allRooms);
       
     } catch (error) {
       console.error('Error loading data:', error);
@@ -258,7 +257,7 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ currentProfile }) => {
   };
 
   const getTeacherName = (teacherId: string) => {
-    const teacher = teachers.find(t => t.profile_id === teacherId);
+    const teacher = teachers.find(t => t.id === teacherId);
     return teacher ? `${teacher.first_name} ${teacher.last_name}` : 'No Teacher Assigned';
   };
 
@@ -271,13 +270,6 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ currentProfile }) => {
   const availableRooms = classFormData.campusId 
     ? rooms.filter(room => room.campus_id === classFormData.campusId)
     : [];
-  
-  // Debug logging for rooms
-  React.useEffect(() => {
-    console.log('Campus selection changed:', classFormData.campusId);
-    console.log('All rooms:', rooms);
-    console.log('Available rooms for campus:', availableRooms);
-  }, [classFormData.campusId, rooms]);
 
   if (loading) {
     return (
@@ -526,7 +518,7 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ currentProfile }) => {
                   >
                     <option value="">No Teacher Assigned</option>
                     {teachers.map(teacher => (
-                      <option key={teacher.profile_id} value={teacher.profile_id}>
+                      <option key={teacher.id} value={teacher.id}>
                         {teacher.first_name} {teacher.last_name}
                       </option>
                     ))}
